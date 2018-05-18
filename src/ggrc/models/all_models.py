@@ -69,6 +69,7 @@ from ggrc.models.vendor import Vendor
 from ggrc.models.maintenance import Maintenance
 from ggrc.models.label import Label
 from ggrc.models.object_label import ObjectLabel
+from ggrc.models.person_profile import PersonProfile
 
 all_models = [  # pylint: disable=invalid-name
     # data platform models
@@ -79,6 +80,7 @@ all_models = [  # pylint: disable=invalid-name
     Namespaces,
     ObjectTemplates,
     ObjectTypes,
+    PersonProfile,
 
     # ggrc models
     AccessControlRole,

@@ -6,7 +6,10 @@
 import datetime
 import collections
 
-from werkzeug.exceptions import Forbidden
+from werkzeug.exceptions import Forbidden, InternalServerError, BadRequest
+from sqlalchemy.sql import select
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+from dateutil import parser as date_parser
 
 from ggrc import db
 from ggrc import login
@@ -16,6 +19,7 @@ from ggrc.services import common
 from ggrc.views import converters
 from ggrc.query import my_objects
 from ggrc.query import builder
+from ggrc.models.person_profile import PersonProfile
 
 
 class PersonResource(common.ExtendedResource):
@@ -122,6 +126,7 @@ class PersonResource(common.ExtendedResource):
         "all_objects_count": self._all_objects_count,
         "imports": converters.handle_import_get,
         "exports": converters.handle_export_get,
+        "profile": self._get_profile,
     }
     return self._process_request(command_map, *args, **kwargs)
 
@@ -140,6 +145,7 @@ class PersonResource(common.ExtendedResource):
     command_map = {
         "imports": converters.handle_import_put,
         "exports": converters.handle_export_put,
+        "profile": self._set_profile,
     }
     return self._process_request(command_map, *args, **kwargs)
 
@@ -288,3 +294,33 @@ class PersonResource(common.ExtendedResource):
         response_object[model_type] = count
 
       return self.json_success_response(response_object, )
+
+  def _get_profile(self, **kwargs):
+    """Get person profile"""
+    profile_table = PersonProfile.__table__
+    request = select([profile_table.c.last_seen_whats_new]).where(
+        profile_table.c.person_id == kwargs["id"])
+    response = db.session.execute(request).fetchall()
+    if len(response) != 1:
+      raise InternalServerError()
+    return self.json_success_response(dict(response[0]), )
+
+  def _set_profile(self, **kwargs):
+    """Update person profile"""
+    json = self.request.json
+    try:
+      profile = PersonProfile.query.filter_by(person_id=kwargs["id"]).one()
+    except (NoResultFound, MultipleResultsFound):
+      raise InternalServerError()
+
+    try:
+      requested_date_time = date_parser.parse(json["last_seen_whats_new"])
+      profile.last_seen_whats_new = requested_date_time
+    except (KeyError, TypeError):
+      raise BadRequest()
+
+    db.session.commit()
+    response_json = {"Person": {"id": kwargs["id"],
+                                "profile": json}}
+
+    return self.json_success_response(response_json, )
