@@ -8,15 +8,19 @@ from datetime import date
 
 import ddt
 from freezegun import freeze_time
+from dateutil import parser as date_parser
 
+from ggrc import db
 from ggrc.models import all_models
 from ggrc.utils import create_stub
-
+from ggrc.models.person_profile import default_last_seen_date as default_date
 from integration.ggrc.access_control import acl_helper
 from integration.ggrc.models import factories
 from integration.ggrc.services import TestCase
 from integration.ggrc.query_helper import WithQueryApi
 from integration.ggrc_workflows.generator import WorkflowsGenerator
+from integration.ggrc_basic_permissions.models \
+    import factories as rbac_factories
 from integration.ggrc.api_helper import Api
 from integration.ggrc_basic_permissions.models \
     import factories as rbac_factories
@@ -31,6 +35,153 @@ class TestPersonResource(TestCase, WithQueryApi):
     self.client.get("/login")
     self.api = Api()
     self.generator = WorkflowsGenerator()
+
+  @staticmethod
+  def _create_users_names_rbac(users):
+    """Create name and Creator role for users, created vid PersonFactory"""
+    if not users:
+      return
+    roles = {r.name: r for r in all_models.Role.query.all()}
+    for user in users:
+      user.name = user.email.split("@")[0]
+      rbac_factories.UserRoleFactory(role=roles["Creator"], person=user)
+
+  def _login_user(self, user):
+    """Login required user"""
+    user_headers = {
+        "X-ggrc-user": json.dumps({"name": user.name, "email": user.email})
+    }
+    self.client.get("/login", headers=user_headers)
+
+  @freeze_time("2018-05-20 12:23:17")
+  def test_profile_get_successful(self):
+    """Test person_profile GET method successfully achieves correct data"""
+    user = factories.PersonFactory()
+    self._create_users_names_rbac([user])
+    self._login_user(user)
+
+    response = self.client.get("/api/people/{}/profile".format(user.id))
+    self.assert200(response)
+    json_errors = False
+    try:
+      response_datetime = date_parser.parse(
+          response.json["last_seen_whats_new"])
+    except (KeyError, TypeError, AttributeError):
+      json_errors = True
+    self.assertFalse(json_errors)
+    self.assertEqual(default_date(), response_datetime)
+
+  def test_profile_get_failed(self):
+    """Test person_profiles GET method fails
+
+    Request can be failed due to several reasons:
+    1. Now only logged user can request his profile
+    2. If in people_profiles there are several or zero profiles, response is
+      code 500 "Internal Server Error".
+    """
+    valid_user = factories.PersonFactory()
+    self._create_users_names_rbac([valid_user])
+
+    response = self.client.get("/api/people/{}/profile".format(valid_user.id))
+    # logged with default user during setUp
+    self.assert403(response)
+
+    self._login_user(valid_user)
+    db_request = """
+        INSERT INTO `people_profiles` (`person_id`, `last_seen_whats_new`)
+        VALUES ({id} , NOW())
+    """
+    db.engine.execute(db_request.format(id=valid_user.id))
+    response = self.client.get("/api/people/{}/profile".format(valid_user.id))
+    # multiply profiles in DB
+    self.assert500(response)
+
+    db_request = "DELETE FROM people_profiles WHERE person_id = {id}"
+    db.engine.execute(db_request.format(id=valid_user.id))
+    response = self.client.get("/api/people/{}/profile".format(valid_user.id))
+    # person don't have profile
+    self.assert500(response)
+
+  def test_profile_put_successful(self):
+    """Test person_profile PUT method for setting data and correct response"""
+    user = factories.PersonFactory()
+    self._create_users_names_rbac([user])
+    self._login_user(user)
+    new_date = "2018-05-20 16:38:17"
+    data = {"last_seen_whats_new": new_date}
+    correct_response = {"Person": {"id": user.id, "profile": data}}
+    response = self.client.put("/api/people/{}/profile".format(user.id),
+                               content_type='application/json',
+                               data=json.dumps(data),
+                               headers=[('X-Requested-By', 'Unit Tests')])
+    self.assert200(response)
+    self.assertEqual(response.json, correct_response)
+    db_request = """
+        SELECT last_seen_whats_new FROM people_profiles
+        WHERE person_id = {id}
+    """
+    db_date = db.engine.execute(db_request.format(id=user.id)).fetchone()
+    self.assertEqual(db_date[0], date_parser.parse(new_date))
+
+  def test_profile_put_failed(self):
+    """Test person_profiles PUT method fails
+
+      Request can be failed due to several reasons:
+      1. Now only logged user can change his profile
+      2. If request doesn't have "last_seen_whats_new" key or date is
+        incorrect, response is code 400 "Bad Request"
+      3. If in people_profiles there are several or zero profiles, response is
+        code 500 "Internal Server Error".
+    """
+    valid_user = factories.PersonFactory()
+    self._create_users_names_rbac([valid_user])
+
+    new_date = "2018-05-20 22:05:17"
+    data = {"last_seen_whats_new": new_date}
+    response = self.client.put("/api/people/{}/profile".format(valid_user.id),
+                               content_type='application/json',
+                               data=json.dumps(data),
+                               headers=[('X-Requested-By', 'Unit Tests')])
+    # logged with default user during setUp
+    self.assert403(response)
+
+    self._login_user(valid_user)
+    data_without_last_seen = {"other_key": new_date, "one_more_key": 42}
+    response = self.client.put("/api/people/{}/profile".format(valid_user.id),
+                               content_type='application/json',
+                               data=json.dumps(data_without_last_seen),
+                               headers=[('X-Requested-By', 'Unit Tests')])
+    # missed key in request
+    self.assert400(response)
+
+    data_with_incorrect_date = {"last_seen_whats_new": "NOT A 123 DAT456A"}
+    response = self.client.put("/api/people/{}/profile".format(valid_user.id),
+                               content_type='application/json',
+                               data=json.dumps(data_with_incorrect_date),
+                               headers=[('X-Requested-By', 'Unit Tests')])
+    # incorrect value or date format
+    self.assert400(response)
+
+    db_request = """
+            INSERT INTO `people_profiles` (`person_id`, `last_seen_whats_new`)
+            VALUES ({id} , NOW())
+        """
+    db.engine.execute(db_request.format(id=valid_user.id))
+    response = self.client.put("/api/people/{}/profile".format(valid_user.id),
+                               content_type='application/json',
+                               data=json.dumps(data),
+                               headers=[('X-Requested-By', 'Unit Tests')])
+    # multiply profiles in DB
+    self.assert500(response)
+
+    db_request = "DELETE FROM people_profiles WHERE person_id = {id}"
+    db.engine.execute(db_request.format(id=valid_user.id))
+    response = self.client.put("/api/people/{}/profile".format(valid_user.id),
+                               content_type='application/json',
+                               data=json.dumps(data),
+                               headers=[('X-Requested-By', 'Unit Tests')])
+    # person don't have profile
+    self.assert500(response)
 
   def test_task_count_empty(self):
     """Test query count without any workflows and tasks."""

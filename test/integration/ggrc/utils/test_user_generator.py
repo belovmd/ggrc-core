@@ -8,13 +8,17 @@ from collections import OrderedDict
 import json
 import ddt
 import mock
+from freezegun import freeze_time
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
+from ggrc import db
 from ggrc.converters import errors
 from ggrc.integrations.client import PersonClient
 from ggrc.models import Assessment
 from ggrc.models import AssessmentTemplate
 from ggrc.models import Audit
 from ggrc.models import Person
+from ggrc.models.person_profile import PersonProfile, default_last_seen_date
 from ggrc_basic_permissions.models import UserRole
 
 from integration.ggrc.services import TestCase
@@ -50,8 +54,40 @@ class TestUserGenerator(TestCase):
                   'username': name})
     return {'persons': res}
 
+  def _check_profile_was_created(self, email_list):
+    """Checks profile was created successfully for listed users"""
+    for email in email_list:
+      person = Person.query.filter_by(email=email).one()
+      not_unique_profile = False
+      try:
+        profile = PersonProfile.query.filter_by(person_id=person.id).one()
+      except (NoResultFound, MultipleResultsFound):
+        not_unique_profile = True
+      self.assertFalse(not_unique_profile)
+      self.assertEqual(profile.last_seen_whats_new, default_last_seen_date())
+
+  def _check_profile_restrictions(self):
+    """Checks restrictions imposed on people and people_profiles tables
+
+    We have strict 1 to 1 relationship, and people_profiles, people and
+    people inner join people_profiles should be equal.
+    """
+    db_request = """
+        SELECT COUNT(*) FROM `people_profiles`
+        UNION ALL
+        SELECT COUNT(*) FROM `people`
+        UNION ALL
+        SELECT COUNT(*) FROM `people` JOIN `people_profiles`
+            ON `people`.`id` = `people_profiles`.`person_id`
+    """
+
+    db_response = db.engine.execute(db_request).fetchall()
+    self.assertEqual(db_response[0][0], db_response[1][0])
+    self.assertEqual(db_response[0][0], db_response[2][0])
+
   @mock.patch('ggrc.settings.INTEGRATION_SERVICE_URL', new='endpoint')
   @mock.patch('ggrc.settings.AUTHORIZED_DOMAIN', new='example.com')
+  @freeze_time("2018-05-21 10:28:34")
   def test_user_generation(self):
     """Test user generation."""
     with mock.patch.multiple(
@@ -73,8 +109,14 @@ class TestUserGenerator(TestCase):
       roles = UserRole.query.filter_by(person_id=user.id)
       self.assertEqual(roles.count(), 1)
 
+    # checks person profile was created successfully
+    emails = ['aturing@example.com', ]
+    self._check_profile_was_created(emails)
+    self._check_profile_restrictions()
+
   @mock.patch('ggrc.settings.INTEGRATION_SERVICE_URL', new='endpoint')
   @mock.patch('ggrc.settings.AUTHORIZED_DOMAIN', new='example.com')
+  @freeze_time("2018-05-21 10:26:34")
   def test_user_creation(self):
     """Test user creation."""
     with mock.patch.multiple(
@@ -94,6 +136,11 @@ class TestUserGenerator(TestCase):
 
       roles = UserRole.query.filter_by(person_id=user.id)
       self.assertEqual(roles.count(), 0)
+
+    # checks person profile was created successfully
+    emails = ['aturing@example.com', ]
+    self._check_profile_was_created(emails)
+    self._check_profile_restrictions()
 
   @mock.patch('ggrc.settings.INTEGRATION_SERVICE_URL', new='endpoint')
   @mock.patch('ggrc.settings.AUTHORIZED_DOMAIN', new='example.com')
@@ -115,8 +162,12 @@ class TestUserGenerator(TestCase):
       user = Person.query.filter_by(email='aturing@example.com').first()
       self.assertIsNone(user)
 
+    # checks person profile restrictions
+    self._check_profile_restrictions()
+
   @mock.patch('ggrc.settings.INTEGRATION_SERVICE_URL', new='endpoint')
   @mock.patch('ggrc.settings.AUTHORIZED_DOMAIN', new='example.com')
+  @freeze_time("2018-05-20 10:22:22")
   def test_person_import(self):
     """Test for mapped person"""
     with mock.patch.multiple(
@@ -161,8 +212,14 @@ class TestUserGenerator(TestCase):
       self.assertEqual("cbabbage@example.com",
                        acl_roles["Secondary Contacts"].person.email)
 
+      # checks person profile was created successfully
+      emails = ["aturing@example.com", "cbabbage@example.com"]
+      self._check_profile_was_created(emails)
+      self._check_profile_restrictions()
+
   @mock.patch('ggrc.settings.INTEGRATION_SERVICE_URL', new='endpoint')
   @mock.patch('ggrc.settings.AUTHORIZED_DOMAIN', new='example.com')
+  @freeze_time("2018-05-20 08:22:22")
   def test_persons_import(self):
     """Test for mapped persons"""
     with mock.patch.multiple(
@@ -187,6 +244,11 @@ class TestUserGenerator(TestCase):
 
       self.assertEqual(len(assessment_template.default_people['verifiers']), 2)
       self.assertEqual(len(assessment_template.default_people['assignees']), 1)
+
+    # checks person profile was created successfully
+    emails = ["aturing@example.com", "cbabbage@example.com"]
+    self._check_profile_was_created(emails)
+    self._check_profile_restrictions()
 
   @mock.patch('ggrc.settings.INTEGRATION_SERVICE_URL', new='endpoint')
   @mock.patch('ggrc.settings.AUTHORIZED_DOMAIN', new='example.com')
@@ -241,6 +303,7 @@ class TestUserGenerator(TestCase):
 
   @mock.patch('ggrc.settings.INTEGRATION_SERVICE_URL', new='endpoint')
   @mock.patch('ggrc.settings.AUTHORIZED_DOMAIN', new='example.com')
+  @freeze_time("2018-05-21 01:11:11")
   def test_wrong_person_import(self):
     """Test for wrong person import"""
     with mock.patch.multiple(
@@ -266,6 +329,11 @@ class TestUserGenerator(TestCase):
           {"Assessment Template": {
               "row_warnings": {errors.UNKNOWN_USER_WARNING.format(
                   line=3, email="cbabbage@example.com")}}})
+
+    # checks person profile was created successfully
+    emails = ["aturing@example.com", ]
+    self._check_profile_was_created(emails)
+    self._check_profile_restrictions()
 
   @mock.patch('ggrc.settings.INTEGRATION_SERVICE_URL', new='endpoint')
   @mock.patch('ggrc.settings.AUTHORIZED_DOMAIN', new='example.com')
@@ -381,3 +449,6 @@ class TestUserGenerator(TestCase):
         }
     }
     self._check_csv_response(response, expected_errors)
+
+    # checks person profile restrictions
+    self._check_profile_restrictions()
