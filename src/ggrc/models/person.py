@@ -49,8 +49,7 @@ class Person(CustomAttributable, CustomAttributeMapable, HasOwnContext,
   profile = relationship("PersonProfile",
                          uselist=False,
                          back_populates="person",
-                         cascade='all, delete-orphan',
-                         lazy='joined')
+                         cascade='all, delete-orphan')
 
   @staticmethod
   def _extra_table_args(cls):
