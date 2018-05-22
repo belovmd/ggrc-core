@@ -13,6 +13,8 @@ from ggrc.models import all_models
 from ggrc.models.mixins import Base
 from ggrc.models import reflection
 from ggrc.models.exceptions import ValidationError
+from ggrc.models.person import Person
+from ggrc.models.person_profile import PersonProfile, default_last_seen_date
 from ggrc.services.common import Resource
 from integration.ggrc import TestCase as BaseTestCase
 
@@ -118,3 +120,22 @@ class TestCase(BaseTestCase):
     ggrc.db.session.add(mock)
     ggrc.db.session.commit()
     return mock
+
+  def assert_person_profile_created(self, emails):
+    """Checks profile was created successfully for listed users"""
+    for email in emails:
+      profile = PersonProfile.query.join(PersonProfile.person).filter_by(
+          email=email).one()
+      self.assertEqual(profile.last_seen_whats_new, default_last_seen_date())
+
+  def assert_profiles_restrictions(self):
+    """Checks restrictions imposed on people and people_profiles tables
+
+    We have strict 1 to 1 relationship, and people_profiles, people and
+    people inner join people_profiles should be equal.
+    """
+    profiles_count = PersonProfile.query.count()
+    people_count = Person.query.count()
+    join_count = Person.query.join(Person.profile).group_by(Person.id).all()
+    self.assertEqual(profiles_count, people_count)
+    self.assertEqual(profiles_count, len(join_count))
