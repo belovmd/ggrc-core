@@ -48,11 +48,12 @@ class Person(CustomAttributable, CustomAttributeMapable, HasOwnContext,
       'Option.role == "person_language")',
       uselist=False,
   )
-  profile = relationship("PersonProfile",
-                         uselist=False,
-                         back_populates="person",
-                         cascade='all, delete-orphan',
-                         lazy='joined')
+  profile = relationship(
+      "PersonProfile",
+      uselist=False,
+      back_populates="person",
+      cascade='all, delete-orphan'
+  )
 
   @staticmethod
   def _extra_table_args(cls):
