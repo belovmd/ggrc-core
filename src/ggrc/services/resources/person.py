@@ -8,7 +8,6 @@ import collections
 import functools
 
 from werkzeug.exceptions import Forbidden, InternalServerError, BadRequest
-from sqlalchemy.sql import select
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from dateutil import parser as date_parser
 
@@ -149,7 +148,7 @@ class PersonResource(common.ExtendedResource):
         "all_objects_count": self.verify_is_current(self._all_objects_count),
         "imports": self.verify_is_current(converters.handle_import_get),
         "exports": self.verify_is_current(converters.handle_export_get),
-        "profile": self._get_profile,
+        "profile": self.verify_is_current(self._get_profile),
     }
     return self._process_request(command_map, *args, **kwargs)
 
@@ -170,7 +169,7 @@ class PersonResource(common.ExtendedResource):
         None: super(PersonResource, self).put,
         "imports": self.verify_is_current(converters.handle_import_put),
         "exports": self.verify_is_current(converters.handle_export_put),
-        "profile": self._set_profile,
+        "profile": self.verify_is_current(self._set_profile),
     }
     return self._process_request(command_map, *args, **kwargs)
 
@@ -314,13 +313,12 @@ class PersonResource(common.ExtendedResource):
 
   def _get_profile(self, **kwargs):
     """Get person profile"""
-    profile_table = PersonProfile.__table__
-    request = select([profile_table.c.last_seen_whats_new]).where(
-        profile_table.c.person_id == kwargs["id"])
-    response = db.session.execute(request).fetchall()
-    if len(response) != 1:
+    try:
+      profile = PersonProfile.query.filter_by(person_id=kwargs["id"]).one()
+    except (NoResultFound, MultipleResultsFound):
       raise InternalServerError()
-    return self.json_success_response(dict(response[0]), )
+    response_json = {"last_seen_whats_new": profile.last_seen_whats_new}
+    return self.json_success_response(response_json, )
 
   def _set_profile(self, **kwargs):
     """Update person profile"""
