@@ -4,7 +4,7 @@
 """Tests for /api/people endpoints."""
 
 import json
-from datetime import date
+from datetime import date, datetime
 
 import ddt
 from freezegun import freeze_time
@@ -13,7 +13,9 @@ from dateutil import parser as date_parser
 from ggrc import db
 from ggrc.models import all_models
 from ggrc.utils import create_stub
-from ggrc.models.person_profile import default_last_seen_date as default_date
+from ggrc.models.person_profile import (PersonProfile,
+                                        default_last_seen_date as default_date)
+
 from integration.ggrc.access_control import acl_helper
 from integration.ggrc.models import factories
 from integration.ggrc.services import TestCase
@@ -87,17 +89,17 @@ class TestPersonResource(TestCase, WithQueryApi):
     self.assert403(response)
 
     self._login_user(valid_user)
-    db_request = """
-        INSERT INTO `people_profiles` (`person_id`, `last_seen_whats_new`)
-        VALUES ({id} , NOW())
-    """
-    db.engine.execute(db_request.format(id=valid_user.id))
+    profiles_table = PersonProfile.__table__
+    db_request = profiles_table.insert().values(
+        person_id=valid_user.id, last_seen_whats_new=datetime.now())
+    db.engine.execute(db_request)
     response = self.client.get("/api/people/{}/profile".format(valid_user.id))
     # multiply profiles in DB
     self.assert500(response)
 
-    db_request = "DELETE FROM people_profiles WHERE person_id = {id}"
-    db.engine.execute(db_request.format(id=valid_user.id))
+    db_request = profiles_table.delete().where(
+        profiles_table.c.person_id == valid_user.id)
+    db.engine.execute(db_request)
     response = self.client.get("/api/people/{}/profile".format(valid_user.id))
     # person don't have profile
     self.assert500(response)
@@ -116,12 +118,8 @@ class TestPersonResource(TestCase, WithQueryApi):
                                headers=[('X-Requested-By', 'Unit Tests')])
     self.assert200(response)
     self.assertEqual(response.json, correct_response)
-    db_request = """
-        SELECT last_seen_whats_new FROM people_profiles
-        WHERE person_id = {id}
-    """
-    db_date = db.engine.execute(db_request.format(id=user.id)).fetchone()
-    self.assertEqual(db_date[0], date_parser.parse(new_date))
+    profile = PersonProfile.query.filter_by(person_id=user.id).first()
+    self.assertEqual(profile.last_seen_whats_new, date_parser.parse(new_date))
 
   def test_profile_put_failed(self):
     """Test person_profiles PUT method fails
@@ -162,11 +160,10 @@ class TestPersonResource(TestCase, WithQueryApi):
     # incorrect value or date format
     self.assert400(response)
 
-    db_request = """
-            INSERT INTO `people_profiles` (`person_id`, `last_seen_whats_new`)
-            VALUES ({id} , NOW())
-        """
-    db.engine.execute(db_request.format(id=valid_user.id))
+    profiles_table = PersonProfile.__table__
+    db_request = profiles_table.insert().values(
+        person_id=valid_user.id, last_seen_whats_new=datetime.now())
+    db.engine.execute(db_request)
     response = self.client.put("/api/people/{}/profile".format(valid_user.id),
                                content_type='application/json',
                                data=json.dumps(data),
@@ -174,8 +171,9 @@ class TestPersonResource(TestCase, WithQueryApi):
     # multiply profiles in DB
     self.assert500(response)
 
-    db_request = "DELETE FROM people_profiles WHERE person_id = {id}"
-    db.engine.execute(db_request.format(id=valid_user.id))
+    db_request = profiles_table.delete().where(
+        profiles_table.c.person_id == valid_user.id)
+    db.engine.execute(db_request)
     response = self.client.put("/api/people/{}/profile".format(valid_user.id),
                                content_type='application/json',
                                data=json.dumps(data),

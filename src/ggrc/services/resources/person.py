@@ -8,7 +8,6 @@ import collections
 import functools
 
 from werkzeug.exceptions import Forbidden, InternalServerError, BadRequest
-from sqlalchemy.sql import select
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from dateutil import parser as date_parser
 
@@ -314,13 +313,12 @@ class PersonResource(common.ExtendedResource):
 
   def _get_profile(self, **kwargs):
     """Get person profile"""
-    profile_table = PersonProfile.__table__
-    request = select([profile_table.c.last_seen_whats_new]).where(
-        profile_table.c.person_id == kwargs["id"])
-    response = db.session.execute(request).fetchall()
-    if len(response) != 1:
+    try:
+      profile = PersonProfile.query.filter_by(person_id=kwargs["id"]).one()
+    except (NoResultFound, MultipleResultsFound):
       raise InternalServerError()
-    return self.json_success_response(dict(response[0]), )
+    response_json = {"last_seen_whats_new": profile.last_seen_whats_new}
+    return self.json_success_response(response_json, )
 
   def _set_profile(self, **kwargs):
     """Update person profile"""

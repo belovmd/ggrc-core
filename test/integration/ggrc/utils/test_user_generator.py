@@ -10,7 +10,6 @@ import mock
 from freezegun import freeze_time
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
-from ggrc import db
 from ggrc.converters import errors
 from ggrc.integrations.client import PersonClient
 from ggrc.models import Assessment
@@ -70,18 +69,11 @@ class TestUserGenerator(TestCase):
     We have strict 1 to 1 relationship, and people_profiles, people and
     people inner join people_profiles should be equal.
     """
-    db_request = """
-        SELECT COUNT(*) FROM `people_profiles`
-        UNION ALL
-        SELECT COUNT(*) FROM `people`
-        UNION ALL
-        SELECT COUNT(*) FROM `people` JOIN `people_profiles`
-            ON `people`.`id` = `people_profiles`.`person_id`
-    """
-
-    db_response = db.engine.execute(db_request).fetchall()
-    self.assertEqual(db_response[0][0], db_response[1][0])
-    self.assertEqual(db_response[0][0], db_response[2][0])
+    profiles_count = PersonProfile.query.count()
+    people_count = Person.query.count()
+    join_count = Person.query.join(Person.profile).group_by(Person.id).all()
+    self.assertEqual(profiles_count, people_count)
+    self.assertEqual(profiles_count, len(join_count))
 
   @mock.patch('ggrc.settings.INTEGRATION_SERVICE_URL', new='endpoint')
   @mock.patch('ggrc.settings.AUTHORIZED_DOMAIN', new='example.com')
