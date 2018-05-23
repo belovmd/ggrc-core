@@ -148,7 +148,7 @@ class PersonResource(common.ExtendedResource):
         "all_objects_count": self.verify_is_current(self._all_objects_count),
         "imports": self.verify_is_current(converters.handle_import_get),
         "exports": self.verify_is_current(converters.handle_export_get),
-        "profile": self._get_profile,
+        "profile": self.verify_is_current(self._get_profile),
     }
     return self._process_request(command_map, *args, **kwargs)
 
@@ -169,7 +169,7 @@ class PersonResource(common.ExtendedResource):
         None: super(PersonResource, self).put,
         "imports": self.verify_is_current(converters.handle_import_put),
         "exports": self.verify_is_current(converters.handle_export_put),
-        "profile": self._set_profile,
+        "profile": self.verify_is_current(self._set_profile),
     }
     return self._process_request(command_map, *args, **kwargs)
 
