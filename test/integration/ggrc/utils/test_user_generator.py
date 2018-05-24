@@ -8,7 +8,6 @@ from collections import OrderedDict
 import json
 import mock
 from freezegun import freeze_time
-from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 from ggrc.converters import errors
 from ggrc.integrations.client import PersonClient
@@ -16,7 +15,6 @@ from ggrc.models import Assessment
 from ggrc.models import AssessmentTemplate
 from ggrc.models import Audit
 from ggrc.models import Person
-from ggrc.models.person_profile import PersonProfile, default_last_seen_date
 from ggrc_basic_permissions.models import UserRole
 
 from integration.ggrc.services import TestCase
@@ -51,30 +49,6 @@ class TestUserGenerator(TestCase):
                   'username': name})
     return {'persons': res}
 
-  def _check_profile_was_created(self, email_list):
-    """Checks profile was created successfully for listed users"""
-    for email in email_list:
-      person = Person.query.filter_by(email=email).one()
-      not_unique_profile = False
-      try:
-        profile = PersonProfile.query.filter_by(person_id=person.id).one()
-      except (NoResultFound, MultipleResultsFound):
-        not_unique_profile = True
-      self.assertFalse(not_unique_profile)
-      self.assertEqual(profile.last_seen_whats_new, default_last_seen_date())
-
-  def _check_profile_restrictions(self):
-    """Checks restrictions imposed on people and people_profiles tables
-
-    We have strict 1 to 1 relationship, and people_profiles, people and
-    people inner join people_profiles should be equal.
-    """
-    profiles_count = PersonProfile.query.count()
-    people_count = Person.query.count()
-    join_count = Person.query.join(Person.profile).group_by(Person.id).all()
-    self.assertEqual(profiles_count, people_count)
-    self.assertEqual(profiles_count, len(join_count))
-
   @mock.patch('ggrc.settings.INTEGRATION_SERVICE_URL', new='endpoint')
   @mock.patch('ggrc.settings.AUTHORIZED_DOMAIN', new='example.com')
   @freeze_time("2018-05-21 10:28:34")
@@ -101,8 +75,8 @@ class TestUserGenerator(TestCase):
 
     # checks person profile was created successfully
     emails = ['aturing@example.com', ]
-    self._check_profile_was_created(emails)
-    self._check_profile_restrictions()
+    self.assert_person_profile_created(emails)
+    self.assert_profiles_restrictions()
 
   @mock.patch('ggrc.settings.INTEGRATION_SERVICE_URL', new='endpoint')
   @mock.patch('ggrc.settings.AUTHORIZED_DOMAIN', new='example.com')
@@ -129,8 +103,8 @@ class TestUserGenerator(TestCase):
 
     # checks person profile was created successfully
     emails = ['aturing@example.com', ]
-    self._check_profile_was_created(emails)
-    self._check_profile_restrictions()
+    self.assert_person_profile_created(emails)
+    self.assert_profiles_restrictions()
 
   @mock.patch('ggrc.settings.INTEGRATION_SERVICE_URL', new='endpoint')
   @mock.patch('ggrc.settings.AUTHORIZED_DOMAIN', new='example.com')
@@ -153,7 +127,7 @@ class TestUserGenerator(TestCase):
       self.assertIsNone(user)
 
     # checks person profile restrictions
-    self._check_profile_restrictions()
+    self.assert_profiles_restrictions()
 
   @mock.patch('ggrc.settings.INTEGRATION_SERVICE_URL', new='endpoint')
   @mock.patch('ggrc.settings.AUTHORIZED_DOMAIN', new='example.com')
@@ -204,8 +178,8 @@ class TestUserGenerator(TestCase):
 
       # checks person profile was created successfully
       emails = ["aturing@example.com", "cbabbage@example.com"]
-      self._check_profile_was_created(emails)
-      self._check_profile_restrictions()
+      self.assert_person_profile_created(emails)
+      self.assert_profiles_restrictions()
 
   @mock.patch('ggrc.settings.INTEGRATION_SERVICE_URL', new='endpoint')
   @mock.patch('ggrc.settings.AUTHORIZED_DOMAIN', new='example.com')
@@ -237,8 +211,8 @@ class TestUserGenerator(TestCase):
 
     # checks person profile was created successfully
     emails = ["aturing@example.com", "cbabbage@example.com"]
-    self._check_profile_was_created(emails)
-    self._check_profile_restrictions()
+    self.assert_person_profile_created(emails)
+    self.assert_profiles_restrictions()
 
   @mock.patch('ggrc.settings.INTEGRATION_SERVICE_URL', new='endpoint')
   @mock.patch('ggrc.settings.AUTHORIZED_DOMAIN', new='example.com')
@@ -271,8 +245,8 @@ class TestUserGenerator(TestCase):
 
     # checks person profile was created successfully
     emails = ["aturing@example.com", ]
-    self._check_profile_was_created(emails)
-    self._check_profile_restrictions()
+    self.assert_person_profile_created(emails)
+    self.assert_profiles_restrictions()
 
   @mock.patch("ggrc.settings.INTEGRATION_SERVICE_URL", new="endpoint")
   @mock.patch("ggrc.utils.user_generator.search_user", return_value="user")
@@ -311,4 +285,4 @@ class TestUserGenerator(TestCase):
     self._check_csv_response(response, expected_errors)
 
     # checks person profile restrictions
-    self._check_profile_restrictions()
+    self.assert_profiles_restrictions()

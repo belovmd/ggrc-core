@@ -12,8 +12,6 @@ import mock
 import ddt
 from freezegun import freeze_time
 from sqlalchemy import and_
-from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
-
 
 from integration.ggrc.models import factories
 from integration.ggrc.services import TestCase
@@ -21,8 +19,7 @@ from integration.ggrc import api_helper
 from integration.ggrc.api_helper import Api
 from integration.ggrc.generator import ObjectGenerator
 from ggrc.models import all_models
-from ggrc.models.person import Person
-from ggrc.models.person_profile import PersonProfile, default_last_seen_date
+
 from ggrc import db
 
 
@@ -359,30 +356,6 @@ class TestUserCreation(TestCase):
       result["person"]["external"] = external
     return result
 
-  def _check_profile_was_created(self, email_list):
-    """Checks profile was created successfully for listed users"""
-    for email in email_list:
-      person = Person.query.filter_by(email=email).one()
-      not_unique_profile = False
-      try:
-        profile = PersonProfile.query.filter_by(person_id=person.id).one()
-      except (NoResultFound, MultipleResultsFound):
-        not_unique_profile = True
-      self.assertFalse(not_unique_profile)
-      self.assertEqual(profile.last_seen_whats_new, default_last_seen_date())
-
-  def _check_profile_restrictions(self):
-    """Checks restrictions imposed on people and people_profiles tables
-
-    We have strict 1 to 1 relationship, and people_profiles, people and
-    people inner join people_profiles should be equal.
-    """
-    profiles_count = PersonProfile.query.count()
-    people_count = Person.query.count()
-    join_count = Person.query.join(Person.profile).group_by(Person.id).all()
-    self.assertEqual(profiles_count, people_count)
-    self.assertEqual(profiles_count, len(join_count))
-
   @freeze_time("2018-05-18 00:04:34")
   def test_external_users_all_succeed(self, create_external_user_mock):
     """When all external users are created, HTTP200 is returned."""
@@ -405,8 +378,8 @@ class TestUserCreation(TestCase):
                            for (status_code, _) in response.json],
                           [201, 201])
     # checks person profile was created successfully
-    self._check_profile_was_created(valid_emails)
-    self._check_profile_restrictions()
+    self.assert_person_profile_created(valid_emails)
+    self.assert_profiles_restrictions()
 
   @freeze_time("2018-05-18 17:04:34")
   def test_external_users_some_succeed(self, create_external_user_mock):
@@ -434,8 +407,8 @@ class TestUserCreation(TestCase):
                           [201, 400])
 
     # checks person profile was created successfully
-    self._check_profile_was_created(["valid@example.com"])
-    self._check_profile_restrictions()
+    self.assert_person_profile_created(["valid@example.com"])
+    self.assert_profiles_restrictions()
 
   def test_external_users_none_succeed(self, create_external_user_mock):
     """When no external users are created, HTTP400 is returned."""
@@ -457,7 +430,7 @@ class TestUserCreation(TestCase):
                           [400, 400])
 
     # checks person profile restrictions
-    self._check_profile_restrictions()
+    self.assert_profiles_restrictions()
 
   def test_disallow_mixed_external_flags(self, create_external_user_mock):
     """When both True and False external flag passed, HTTP400 is returned."""
