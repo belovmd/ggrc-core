@@ -4,6 +4,7 @@
 import re
 from sqlalchemy import event
 from sqlalchemy.orm import validates
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import Session
 
 from ggrc import builder
@@ -19,10 +20,34 @@ from ggrc.models import reflection
 from ggrc.models.relationship import Relatable
 from ggrc.models.utils import validate_option
 from ggrc.rbac import SystemWideRoles
+from ggrc.models.person_profile import PersonProfile
 
 
 class Person(CustomAttributable, CustomAttributeMapable, HasOwnContext,
              Relatable, Base, Indexed, db.Model):
+
+  def __init__(self, *args, **kwargs):
+    """
+    Initialize profile relationship while creating Person instance
+
+    According to SQLAlchemy documentation, mapping imposes no restrictions or
+        requirements on the __init__ constructor method for the class.
+        SQLAlchemy doesn't call __init__ when recreating objects from DB.
+        __init__ calls ones when a new instance is created besides it's
+        decorated via  orm.reconstructor(fn) decorator.
+
+    There are some alternatives for Person.profile initialization
+    1. (after)before_insert listener is not acceptable due to SQLAlchemy
+        restrictions for session.add() and 'related attribute set' operations
+        withing execution stage of flush process
+    2. (after)before_flush listener. I investigated that person creation seems
+        to be pretty rare operation, but before_flush listener will be executed
+        before any flush. It's not performance-friendly approach.
+    3. Create profile in every user creation API endpoint, but it makes
+        codebase less maintainable.
+    """
+    super(Person, self).__init__(*args, **kwargs)
+    self.profile = PersonProfile()
 
   __tablename__ = 'people'
 
@@ -41,6 +66,10 @@ class Person(CustomAttributable, CustomAttributeMapable, HasOwnContext,
       'Option.role == "person_language")',
       uselist=False,
   )
+  profile = relationship("PersonProfile",
+                         uselist=False,
+                         back_populates="person",
+                         cascade='all, delete-orphan')
 
   @staticmethod
   def _extra_table_args(cls):
