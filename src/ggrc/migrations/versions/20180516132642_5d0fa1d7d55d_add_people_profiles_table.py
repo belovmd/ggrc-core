@@ -20,19 +20,22 @@ down_revision = '8c3900f21613'
 
 def upgrade():
   """Upgrade database schema and/or data, creating a new revision."""
-  op.create_table('people_profiles',
-  sa.Column('id', sa.Integer(), nullable=False),
-  sa.Column('person_id', sa.Integer(), nullable=False),
-  sa.Column('last_seen_whats_new', sa.DateTime(), nullable=False),
-  sa.ForeignKeyConstraint(['person_id'], ['people.id'], ondelete="CASCADE"),
-  sa.PrimaryKeyConstraint('id')
-  )
+  op.create_table(
+      'people_profiles',
+      sa.Column('id', sa.Integer(), nullable=False),
+      sa.Column('person_id', sa.Integer(), nullable=False),
+      sa.Column('last_seen_whats_new', sa.DateTime(), nullable=False),
+      sa.ForeignKeyConstraint(['person_id'],
+                              ['people.id'],
+                              ondelete="CASCADE"),
+      sa.PrimaryKeyConstraint('id'))
 
   op.execute("""
       INSERT INTO `people_profiles` (`person_id`, `last_seen_whats_new`)
       SELECT id, NOW() - INTERVAL 14 DAY
       FROM `people`
   """)
+
 
 def downgrade():
   """Downgrade database schema and/or data back to the previous revision."""
