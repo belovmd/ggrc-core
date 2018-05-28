@@ -4,6 +4,7 @@
 import re
 from sqlalchemy import event
 from sqlalchemy.orm import validates
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import Session
 
 from ggrc import builder
@@ -41,6 +42,11 @@ class Person(CustomAttributable, CustomAttributeMapable, HasOwnContext,
       'Option.role == "person_language")',
       uselist=False,
   )
+  profile = relationship("PersonProfile",
+                         uselist=False,
+                         back_populates="person",
+                         cascade='all, delete-orphan',
+                         lazy='joined')
 
   @staticmethod
   def _extra_table_args(cls):
