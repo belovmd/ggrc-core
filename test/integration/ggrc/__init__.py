@@ -131,6 +131,7 @@ class TestCase(BaseTestCase, object):
         "test_model",
         "contexts",
         "people",
+        "people_profiles",
         # data platform models that are currently populated with a migration
         "namespaces",
         "attribute_definitions",
