@@ -20,10 +20,16 @@ from ggrc.models import reflection
 from ggrc.models.relationship import Relatable
 from ggrc.models.utils import validate_option
 from ggrc.rbac import SystemWideRoles
+from ggrc.models.person_profile import PersonProfile
 
 
 class Person(CustomAttributable, CustomAttributeMapable, HasOwnContext,
              Relatable, Base, Indexed, db.Model):
+
+  def __init__(self, *args, **kwargs):
+    """Initialize profile relationship while creating Person instance"""
+    super(Person, self).__init__(*args, **kwargs)
+    self.profile = PersonProfile()
 
   __tablename__ = 'people'
 
