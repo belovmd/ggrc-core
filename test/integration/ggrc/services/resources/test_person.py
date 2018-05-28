@@ -4,7 +4,7 @@
 """Tests for /api/people endpoints."""
 
 import json
-from datetime import date, datetime
+from datetime import date
 
 import ddt
 from freezegun import freeze_time
@@ -46,6 +46,12 @@ class TestPersonResource(TestCase, WithQueryApi):
       user.name = user.email.split("@")[0]
       rbac_factories.UserRoleFactory(role=roles["Creator"], person=user)
 
+  def assert_profile_get_successful(self, response, expected_datetime):
+    """Verify assertions for successful GET profile method"""
+    self.assert200(response)
+    response_datetime = date_parser.parse(response.json["last_seen_whats_new"])
+    self.assertEqual(expected_datetime, response_datetime)
+
   @freeze_time("2018-05-20 12:23:17")
   def test_profile_get_successful(self):
     """Test person_profile GET method successfully achieves correct data"""
@@ -55,9 +61,22 @@ class TestPersonResource(TestCase, WithQueryApi):
     self.api.set_user(person=user)
 
     response = self.api.client.get("/api/people/{}/profile".format(user.id))
-    self.assert200(response)
-    response_datetime = date_parser.parse(response.json["last_seen_whats_new"])
-    self.assertEqual(default_date(), response_datetime)
+    self.assert_profile_get_successful(response, default_date())
+
+  def test_profile_get_no_profile(self):
+    """Test person_profile GET method achieves data with missing profile"""
+    with factories.single_commit():
+      user = factories.PersonFactory()
+      self._create_users_names_rbac([user])
+    self.api.set_user(person=user)
+
+    profiles_table = PersonProfile.__table__
+    db_request = profiles_table.delete().where(
+        profiles_table.c.person_id == user.id)
+    db.engine.execute(db_request)
+    with freeze_time("2018-05-28 23:30:10"):
+      response = self.api.client.get("/api/people/{}/profile".format(user.id))
+      self.assert_profile_get_successful(response, default_date())
 
   def test_profile_get_failed(self):
     """Test person_profiles GET method fails
@@ -81,22 +100,17 @@ class TestPersonResource(TestCase, WithQueryApi):
     self.assert403(response)
 
     self.api.set_user(person=valid_user)
-    profiles_table = PersonProfile.__table__
-    db_request = profiles_table.insert().values(
-        person_id=valid_user.id, last_seen_whats_new=datetime.now())
-    db.engine.execute(db_request)
-    response = self.api.client.get(
-        "/api/people/{}/profile".format(valid_user.id))
-    # multiply profiles in DB
-    self.assert500(response)
 
-    db_request = profiles_table.delete().where(
-        profiles_table.c.person_id == valid_user.id)
-    db.engine.execute(db_request)
-    response = self.api.client.get(
-        "/api/people/{}/profile".format(valid_user.id))
-    # person don't have profile
-    self.assert500(response)
+  def assert_profile_put_successful(self,
+                                    response,
+                                    correct_response,
+                                    user,
+                                    new_date):
+    """Verify assertions for successful PUT profile method"""
+    self.assert200(response)
+    self.assertEqual(response.json, correct_response)
+    profile = PersonProfile.query.filter_by(person_id=user.id).first()
+    self.assertEqual(profile.last_seen_whats_new, date_parser.parse(new_date))
 
   def test_profile_put_successful(self):
     """Test person_profile PUT method for setting data and correct response"""
@@ -111,20 +125,37 @@ class TestPersonResource(TestCase, WithQueryApi):
     response = self.api.client.put("/api/people/{}/profile".format(user.id),
                                    content_type='application/json',
                                    data=json.dumps(data),
-                                   headers=[('X-Requested-By', 'Unit Tests')])
-    self.assert200(response)
-    self.assertEqual(response.json, correct_response)
-    profile = PersonProfile.query.filter_by(person_id=user.id).first()
-    self.assertEqual(profile.last_seen_whats_new, date_parser.parse(new_date))
+                                   headers=[('X-Requested-By', 'Tests')])
+    self.assert_profile_put_successful(response,
+                                       correct_response,
+                                       user,
+                                       new_date)
 
-  def test_profile_put_failed(self):
-    """Test person_profiles PUT method fails
+  def test_profile_put_no_profile(self):
+    """Test person_profile PUT method for setting data for missing profile"""
+    with factories.single_commit():
+      user = factories.PersonFactory()
+      self._create_users_names_rbac([user])
+    self.api.set_user(person=user)
 
-      Request can be failed due to several reasons:
-      1. Now only logged user can change his profile
-      2. If in people_profiles there are several or zero profiles, response is
-        code 500 "Internal Server Error".
-    """
+    new_date = "2018-05-20 22:05:17"
+    data = {"last_seen_whats_new": new_date}
+    correct_response = {"Person": {"id": user.id, "profile": data}}
+    profiles_table = PersonProfile.__table__
+    db_request = profiles_table.delete().where(
+        profiles_table.c.person_id == user.id)
+    db.engine.execute(db_request)
+    response = self.api.client.put("/api/people/{}/profile".format(user.id),
+                                   content_type='application/json',
+                                   data=json.dumps(data),
+                                   headers=[('X-Requested-By', 'Tests')])
+    self.assert_profile_put_successful(response,
+                                       correct_response,
+                                       user,
+                                       new_date)
+
+  def test_profile_put_unauthorized(self):
+    """Test person_profiles PUT method fails for unauthorized user"""
     with factories.single_commit():
       user = factories.PersonFactory()
       self._create_users_names_rbac([user])
@@ -134,37 +165,15 @@ class TestPersonResource(TestCase, WithQueryApi):
     response = self.client.put("/api/people/{}/profile".format(user.id),
                                content_type='application/json',
                                data=json.dumps(data),
-                               headers=[('X-Requested-By', 'Unit Tests')])
+                               headers=[('X-Requested-By', 'Tests')])
     # logged with default user during setUp
     self.assert403(response)
     response = self.api.client.put("/api/people/{}/profile".format(user.id),
                                    content_type='application/json',
                                    data=json.dumps(data),
-                                   headers=[('X-Requested-By', 'Unit Tests')])
+                                   headers=[('X-Requested-By', 'Tests')])
     # not authorized user
     self.assert403(response)
-
-    self.api.set_user(person=user)
-    profiles_table = PersonProfile.__table__
-    db_request = profiles_table.insert().values(
-        person_id=user.id, last_seen_whats_new=datetime.now())
-    db.engine.execute(db_request)
-    response = self.api.client.put("/api/people/{}/profile".format(user.id),
-                                   content_type='application/json',
-                                   data=json.dumps(data),
-                                   headers=[('X-Requested-By', 'Unit Tests')])
-    # multiply profiles in DB
-    self.assert500(response)
-
-    db_request = profiles_table.delete().where(
-        profiles_table.c.person_id == user.id)
-    db.engine.execute(db_request)
-    response = self.api.client.put("/api/people/{}/profile".format(user.id),
-                                   content_type='application/json',
-                                   data=json.dumps(data),
-                                   headers=[('X-Requested-By', 'Unit Tests')])
-    # person don't have profile
-    self.assert500(response)
 
   @ddt.data({"last_seen_whats_new": "NOT A 123 DAT456A"},
             {"other_key": "2018-05-20 22:05:17", "one_more_key": 42})
@@ -182,7 +191,7 @@ class TestPersonResource(TestCase, WithQueryApi):
     response = self.api.client.put("/api/people/{}/profile".format(user.id),
                                    content_type='application/json',
                                    data=json.dumps(data),
-                                   headers=[('X-Requested-By', 'Unit Tests')])
+                                   headers=[('X-Requested-By', 'Tests')])
     # missed key in request
     self.assert400(response)
 

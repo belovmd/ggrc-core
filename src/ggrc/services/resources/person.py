@@ -8,19 +8,21 @@ import collections
 import functools
 
 from logging import getLogger
-from werkzeug.exceptions import Forbidden, InternalServerError, BadRequest
-from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+from werkzeug.exceptions import Forbidden, BadRequest
+from sqlalchemy.orm.exc import NoResultFound
 from dateutil import parser as date_parser
 
 from ggrc import db
 from ggrc import login
 from ggrc import models
 from ggrc.utils import benchmark
+from ggrc.utils.log_event import log_event
 from ggrc.services import common
 from ggrc.views import converters
 from ggrc.query import my_objects
 from ggrc.query import builder
 from ggrc.models.person_profile import PersonProfile
+from ggrc.models.person import Person
 
 
 # pylint: disable=invalid-name
@@ -316,33 +318,53 @@ class PersonResource(common.ExtendedResource):
 
       return self.json_success_response(response_object, )
 
+  @staticmethod
+  def _get_or_create_profile(person_id):
+    """Returns profile if it exists, otherwise returns created one
+
+    Returns:
+        A tuple (created, profile). Created is set True for created profile,
+        False otherwise. Profile is profile for Person with id=person_id.
+      """
+    try:
+      profile = PersonProfile.query.filter_by(person_id=person_id).one()
+    except NoResultFound:
+      person = Person.query.filter_by(id=person_id).one()
+      person.profile = PersonProfile()
+      return (True, person.profile)
+    return (False, profile)
+
   def _get_profile(self, **kwargs):
     """Get person profile"""
-    try:
-      profile = PersonProfile.query.filter_by(person_id=kwargs["id"]).one()
-    except (NoResultFound, MultipleResultsFound) as err:
-      logger.exception(err)
-      raise InternalServerError()
-    response_json = {"last_seen_whats_new": profile.last_seen_whats_new}
+    get_profile = self._get_or_create_profile(kwargs["id"])
+    if get_profile[0]:
+      db.session.flush()
+      log_event(db.session, get_profile[1])
+      db.session.commit()
+
+    response_json = {
+        "last_seen_whats_new": get_profile[1].last_seen_whats_new
+    }
     return self.json_success_response(response_json, )
 
   def _set_profile(self, **kwargs):
     """Update person profile"""
     json = self.request.json
-    try:
-      profile = PersonProfile.query.filter_by(person_id=kwargs["id"]).one()
-    except (NoResultFound, MultipleResultsFound) as err:
-      logger.exception(err)
-      raise InternalServerError()
+
+    get_profile = self._get_or_create_profile(kwargs["id"])
 
     try:
       requested_date_time = date_parser.parse(json["last_seen_whats_new"])
-      profile.last_seen_whats_new = requested_date_time
-    except (KeyError, TypeError):
+      get_profile[1].last_seen_whats_new = requested_date_time
+    except Exception as err:
+      logger.exception(err)
       raise BadRequest()
 
-    db.session.commit()
-    response_json = {"Person": {"id": kwargs["id"],
-                                "profile": json}}
+    db.session.flush()
+    log_event(db.session, get_profile[1])
 
+    db.session.commit()
+    response_json = {
+        "Person": {"id": kwargs["id"], "profile": json}
+    }
     return self.json_success_response(response_json, )

@@ -131,11 +131,10 @@ class TestCase(BaseTestCase):
   def assert_profiles_restrictions(self):
     """Checks restrictions imposed on people and people_profiles tables
 
-    We have strict 1 to 1 relationship, and people_profiles, people and
-    people inner join people_profiles should be equal.
+    We have 0 or 1 to 1 relationship, and people_profiles should be equal to
+    people inner join people_profiles (all existing profiles should be
+    attached to appropriate person)
     """
     profiles_count = PersonProfile.query.count()
-    people_count = Person.query.count()
-    join_count = Person.query.join(Person.profile).group_by(Person.id).all()
-    self.assertEqual(profiles_count, people_count)
-    self.assertEqual(profiles_count, len(join_count))
+    join_count = Person.query.join(Person.profile).count()
+    self.assertEqual(profiles_count, join_count)

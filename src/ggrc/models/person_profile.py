@@ -8,8 +8,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import relationship
 
 from ggrc import db
-from ggrc.models.inflector import ModelInflectorDescriptor
-from ggrc.models.mixins.base import Identifiable
+from ggrc.models.mixins.base import Base
 
 # Offset for default last seen what's new date in days
 DEFAULT_LAST_SEEN_OFFSET = 60
@@ -17,20 +16,20 @@ DEFAULT_LAST_SEEN_OFFSET = 60
 
 def default_last_seen_date():
   """Function counts last_seen_whats_new date for new users"""
-  return datetime.now() - timedelta(DEFAULT_LAST_SEEN_OFFSET)
+  now = datetime.now()
+  return now.replace(microsecond=0) - timedelta(DEFAULT_LAST_SEEN_OFFSET)
 
 
 # pylint: disable=too-few-public-methods
-class PersonProfile(Identifiable, db.Model):
+class PersonProfile(Base, db.Model):
   """Class represents person's profile.
 
   Profile keeps user's preferences and local user settings such as
   "last seen what's" new date"""
 
   __tablename__ = 'people_profiles'
-  _inflector = ModelInflectorDescriptor()
 
-  person_id = db.Column(db.Integer, db.ForeignKey('people.id'))
+  person_id = db.Column(db.Integer, db.ForeignKey('people.id'), unique=True)
 
   last_seen_whats_new = db.Column(db.DateTime, default=default_last_seen_date)
 
