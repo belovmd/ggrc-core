@@ -4,6 +4,7 @@
 import re
 from sqlalchemy import event
 from sqlalchemy.orm import validates
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import Session
 
 from ggrc import builder
@@ -19,10 +20,16 @@ from ggrc.models import reflection
 from ggrc.models.relationship import Relatable
 from ggrc.models.utils import validate_option
 from ggrc.rbac import SystemWideRoles
+from ggrc.models.person_profile import PersonProfile
 
 
 class Person(CustomAttributable, CustomAttributeMapable, HasOwnContext,
              Relatable, Base, Indexed, db.Model):
+
+  def __init__(self, *args, **kwargs):
+    """Initialize profile relationship while creating Person instance"""
+    super(Person, self).__init__(*args, **kwargs)
+    self.profile = PersonProfile()
 
   __tablename__ = 'people'
 
@@ -40,6 +47,12 @@ class Person(CustomAttributable, CustomAttributeMapable, HasOwnContext,
       primaryjoin='and_(foreign(Person.language_id) == Option.id, '
       'Option.role == "person_language")',
       uselist=False,
+  )
+  profile = relationship(
+      "PersonProfile",
+      uselist=False,
+      back_populates="person",
+      cascade='all, delete-orphan'
   )
 
   @staticmethod
