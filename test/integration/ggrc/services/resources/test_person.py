@@ -81,10 +81,7 @@ class TestPersonResource(TestCase, WithQueryApi):
   def test_profile_get_failed(self):
     """Test person_profiles GET method fails
 
-    Request can be failed due to several reasons:
-    1. Now only logged user can request his profile
-    2. If in people_profiles there are several or zero profiles, response is
-      code 500 "Internal Server Error".
+    Now only logged user can request his profile
     """
     with factories.single_commit():
       valid_user = factories.PersonFactory()
@@ -98,8 +95,6 @@ class TestPersonResource(TestCase, WithQueryApi):
         "/api/people/{}/profile".format(valid_user.id))
     # not authorized user
     self.assert403(response)
-
-    self.api.set_user(person=valid_user)
 
   def assert_profile_put_successful(self,
                                     response,
