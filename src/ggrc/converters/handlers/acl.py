@@ -40,15 +40,18 @@ class AccessControlRoleColumnHandler(handlers.UsersColumnHandler):
 
   def set_obj_attr(self):
     """Update current AC list with correct people values."""
-    if not self.value:
+    value_is_correct = self.value or self.set_empty
+    if not value_is_correct:
       return
     list_old = {
         acl.person
         for acl in self.row_converter.obj.access_control_list
         if acl.ac_role == self.role
     }
+    if self.set_empty:
+      self._remove_people(list_old)
+      return
     list_new = set(self.value)
-
     self._add_people(list_new - list_old)
     self._remove_people(list_old - list_new)
 

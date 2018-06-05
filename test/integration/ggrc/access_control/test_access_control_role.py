@@ -2,13 +2,24 @@
 # Licensed under http://www.apache.org/licenses/LICENSE-2.0 <see LICENSE file>
 
 """Test Access Control Role"""
+from collections import OrderedDict, defaultdict
+
 import ddt
 
 from ggrc.access_control.role import AccessControlRole
+from ggrc.converters import errors
+from ggrc.models import all_models
 from integration.ggrc import TestCase
 from integration.ggrc.api_helper import Api
 from integration.ggrc.models.factories import random_str
+from integration.ggrc.models import factories
 from integration.ggrc.generator import ObjectGenerator
+
+ROLE_NAME = "ACR for mandatory test"
+MANDATORY_ROLE_RESPONSE = {
+    "Control": {"row_warnings": {errors.OWNER_MISSING.format(
+        line=3, column_name=ROLE_NAME)}}}
+NON_MANDATORY_ROLE_RESPONSE = {}
 
 
 @ddt.ddt
@@ -53,6 +64,37 @@ class TestAccessControlRole(TestCase):
         "Update permission not correctly saved {}".format(role.update)
     assert role.delete == 1, \
         "Update permission not correctly saved {}".format(role.delete)
+
+  @ddt.data({"mandatory": True, "exp_response": MANDATORY_ROLE_RESPONSE},
+            {"mandatory": False, "exp_response": NON_MANDATORY_ROLE_RESPONSE})
+  @ddt.unpack
+  def test_mandatory_delete(self, mandatory, exp_response):
+    """Test set empty field via import if acr mandatory is {mandatory}"""
+    with factories.single_commit():
+      user = factories.PersonFactory()
+      control = factories.ControlFactory()
+      role = factories.AccessControlRoleFactory(name=ROLE_NAME,
+                                                object_type="Control",
+                                                mandatory=mandatory)
+      role_id = role.id
+      factories.AccessControlListFactory(person=user,
+                                         ac_role_id=role.id,
+                                         object=control)
+    response = self.import_data(OrderedDict([
+        ("object_type", "Control"),
+        ("Code*", control.slug),
+        (ROLE_NAME, "--"),
+    ]))
+    self._check_csv_response(response, exp_response)
+    db_data = defaultdict(set)
+    for acl in all_models.Control.query.get(control.id).access_control_list:
+      db_data[acl.ac_role_id].add(acl.person_id)
+    if mandatory:
+      cur_user = all_models.Person.query.filter_by(
+          email="user@example.com").first()
+      self.assertEqual(set([cur_user.id]), db_data[role_id])
+    else:
+      self.assertFalse(db_data[role_id])
 
   def test_only_admin_can_post(self):
     """Only admin users should be able to POST access control roles"""
