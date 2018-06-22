@@ -4,15 +4,18 @@
 """Unit Tests for Workflow model and WorkflowState mixin
 """
 
-import ddt
-from datetime import date
 import unittest
+from datetime import date
 
+import ddt
 from freezegun import freeze_time
 
+import ggrc.builder.json
 from ggrc_workflows.models import cycle_task_group_object_task as cycle_task
 from ggrc_workflows.models import cycle
 from ggrc_workflows.models import workflow
+
+from integration.ggrc_workflows.models import factories as wf_factories
 
 
 @ddt.ddt
@@ -36,6 +39,7 @@ class TestWorkflowState(unittest.TestCase):
   @ddt.unpack
   def test_get_state(self, task_states, result):
     """Test get state for {0}."""
+    # pylint: disable=protected-access
     self.assertEqual(
         result,
         workflow.WorkflowState._get_state([
@@ -114,3 +118,11 @@ class TestWorkflowState(unittest.TestCase):
         expected,
         workflow.Workflow().calc_next_adjusted_date(setup_date)
     )
+
+  @ddt.data(True, False)
+  def test_obj_approval_not_updatable(self, flag):
+    """Tests object_approval property is not updatable"""
+    wf_obj = wf_factories.WorkflowFactory(object_approval=flag)
+    builder = ggrc.builder.json.get_json_builder(wf_obj)
+    # pylint: disable=protected-access
+    self.assertNotIn("object_approval", builder._update_attrs)
