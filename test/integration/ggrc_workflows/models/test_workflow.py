@@ -383,6 +383,7 @@ class TestWorkflow(TestCase):
     self.assertEqual(observed_result, expected_result)
 
 
+@ddt.ddt
 class TestWorkflowApiCalls(workflow_test_case.WorkflowTestCase):
   """Tests related to Workflow REST API calls."""
 
@@ -398,3 +399,26 @@ class TestWorkflowApiCalls(workflow_test_case.WorkflowTestCase):
     workflow = all_models.Workflow.query.one()
     response = self.api_helper.get_collection(workflow, (workflow.id, ))
     self.assertTrue(response.json["workflows_collection"]["workflows"])
+
+  @ddt.data(True, False)
+  def test_obj_approval_not_updatable(self, flag):
+    """Tests object_approval property is not updatable via REST API"""
+    attr_name = "object_approval"
+    wf_obj = factories.WorkflowFactory(object_approval=flag)
+    wf_id = wf_obj.id
+    wf_obj_approval = flag
+
+    response = self.api_helper.get(Workflow, wf_id)
+    self.assert200(response)
+    obj_approval = response.json.get("workflow", {}).get(attr_name)
+    self.assertEqual(wf_obj_approval, obj_approval)
+
+    response = self.api_helper.put(wf_obj, {attr_name: not flag})
+    self.assert200(response)
+    db_obj_approval = Workflow.query.filter_by(id=wf_id).one().object_approval
+    self.assertEqual(wf_obj_approval, db_obj_approval)
+
+    response = self.api_helper.get(Workflow, wf_id)
+    self.assert200(response)
+    new_obj_approval = response.json.get("workflow", {}).get(attr_name)
+    self.assertEqual(wf_obj_approval, new_obj_approval)
