@@ -173,11 +173,11 @@ class TestCTGOT(BaseTestCase):
     self.assertEqual(all_models.CycleTaskEntry.query.count(), 0)
 
 
-class CycleTaskQueryAPI(query_helper.WithQueryApi, TestCTGOT):
-  """CycleTask's QueryAPI related tests."""
+class CycleTaskSecondaryAssigneeQuery(query_helper.WithQueryApi, TestCTGOT):
+  """CycleTask's QueryAPI secondary assignee related tests."""
 
   def setUp(self):
-    super(CycleTaskQueryAPI, self).setUp()
+    super(CycleTaskSecondaryAssigneeQuery, self).setUp()
     self.client.get("/login")
 
   def test_query_by_task_secondary_assignee_on_mytasks_page(self):  # noqa pylint: disable=invalid-name
@@ -278,6 +278,67 @@ class CycleTaskQueryAPI(query_helper.WithQueryApi, TestCTGOT):
     ]
     result = self._get_first_result_set(data, "Cycle", "total")
     self.assertEqual(result, 1)
+
+
+@ddt.ddt
+class CycleTaskObjectApprovalQuery(query_helper.WithQueryApi,
+                                   workflow_test_case.WorkflowTestCase):
+  """CycleTask's QueryAPI for object_approval attribute."""
+
+  def setUp(self):
+    super(CycleTaskObjectApprovalQuery, self).setUp()
+    self.client.get("/login")
+
+  @staticmethod
+  def _generate_workflows(approved, obj_num):
+    """Generate workflows with appropriate data for tests"""
+    generator = wf_generator.WorkflowsGenerator()
+    with factories.single_commit():
+      workflows = [wf_factories.WorkflowFactory(object_approval=approved[i])
+                   for i in range(obj_num)]
+      taskgroups = [wf_factories.TaskGroupFactory(workflow=workflows[i])
+                    for i in range(obj_num)]
+      # flake8: noqa pylint: disable=unused-variable
+      tasks = [wf_factories.TaskGroupTaskFactory(task_group=taskgroups[i])
+               for i in range(obj_num)]
+
+    cycles = [generator.generate_cycle(workflows[i])[1].id
+              for i in range(obj_num)]
+    for workflow in workflows:
+      generator.activate_workflow(workflow)
+
+    return cycles
+
+  @ddt.data(
+      [False, False, False],
+      [False, False, True],
+      [False, True, True],
+      [True, True, True],
+  )
+  def test_query_object_approval(self, approved):
+    """Test QueryAPI request for object approval"""
+    obj_num = len(approved)
+    cycles_ids = self._generate_workflows(approved, obj_num)
+    approved_ids = self.simple_query(
+        "CycleTaskGroupObjectTask",
+        expression=["object approval", "=", "true"],
+        type_="ids",
+        field="ids"
+    )
+    not_approved_ids = self.simple_query(
+        "CycleTaskGroupObjectTask",
+        expression=["object approval", "=", "false"],
+        type_="ids",
+        field="ids"
+    )
+
+    cycle_tasks = all_models.CycleTaskGroupObjectTask.query.all()
+    expected_approved = [task.id for task in cycle_tasks if
+                         approved[cycles_ids.index(task.cycle_id)]]
+    expected_not_approved = [task.id for task in cycle_tasks if not
+                             approved[cycles_ids.index(task.cycle_id)]]
+    self.assertEqual(approved_ids, expected_approved)
+    self.assertEqual(not_approved_ids, expected_not_approved)
 
 
 @ddt.ddt
