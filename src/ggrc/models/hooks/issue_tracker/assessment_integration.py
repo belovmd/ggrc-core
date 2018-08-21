@@ -783,6 +783,19 @@ def prepare_issue_json(assessment, issue_tracker_info=None):
       'ccs': [],
       'comment': create_asmnt_comment(assessment),
   }
+  custom_fields = []
+
+  due_date = issue_tracker_info.get('due_date')
+  if due_date:
+    custom_fields.append({
+        "name": "Due Date",
+        "value": due_date.strftime("%Y-%m-%d"),
+        "type": "DATE",
+        "display_string": "Due Date"
+    })
+
+  if custom_fields:
+    issue_params['custom_fields'] = custom_fields
 
   assignee = issue_tracker_info.get('assignee')
   if assignee:
@@ -812,6 +825,8 @@ def _create_issuetracker_info(assessment, issue_tracker_info):
   """Creates an entry for IssueTracker model."""
   if not issue_tracker_info.get('title'):
     issue_tracker_info['title'] = assessment.title
+  if not issue_tracker_info.get('due_date'):
+    issue_tracker_info['due_date'] = assessment.start_date
   issue_tracker_info['status'] = ASSESSMENT_STATUSES_MAPPING.get(
       assessment.status
   )
