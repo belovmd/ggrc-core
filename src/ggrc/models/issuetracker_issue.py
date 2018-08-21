@@ -28,6 +28,7 @@ class IssuetrackerIssue(base.ContextRBAC, Base, db.Model):
   issue_severity = db.Column(db.String(50), nullable=True)
   assignee = db.Column(db.String(250), nullable=True)
   cc_list = db.Column(db.Text, nullable=False, default="")
+  due_date = db.Column(db.Date, nullable=True)
 
   issue_id = db.Column(db.String(50), nullable=True)
   issue_url = db.Column(db.String(250), nullable=True)
