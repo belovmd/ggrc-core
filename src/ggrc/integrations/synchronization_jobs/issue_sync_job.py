@@ -6,6 +6,7 @@
 # pylint: disable=invalid-name
 
 import logging
+from datetime import datetime
 
 from ggrc import db
 from ggrc.models import all_models
@@ -95,6 +96,17 @@ def sync_statuses(issuetracker_state, sync_object):
     sync_object.status = ISSUE_STATUS_MAPPING[issue_tracker_status]
 
 
+def sync_due_date(custom_fields, sync_object):
+  """Sync issue object due date."""
+  issue_tracker_due_date = custom_fields.get("Due Date", {}).get("value")
+  date_format = "%Y-%m-%d"
+
+  if issue_tracker_due_date:
+    sync_object.due_date = datetime.strptime(
+        issue_tracker_due_date, date_format
+    )
+
+
 def sync_issue_attributes():
   """Synchronizes issue tracker ticket attrs with the Issue object attrs.
 
@@ -134,6 +146,12 @@ def sync_issue_attributes():
       sync_statuses(issuetracker_state, sync_object)
       sync_assignee_email(issuetracker_state, sync_object, assignees_role)
       sync_verifier_email(issuetracker_state, sync_object, admin_role)
+
+      custom_fields = {
+          field["name"]: field
+          for field in issuetracker_state.get("custom_fields", [])
+      }
+      sync_due_date(custom_fields, sync_object)
 
   db.session.commit()
   logger.debug("Sync is done, %d issue(s) were processed.", len(processed_ids))
