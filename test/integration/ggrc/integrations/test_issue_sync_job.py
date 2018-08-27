@@ -184,6 +184,58 @@ class TestIssueIntegration(ggrc.TestCase):
           [new_assignee.email, ]
       )
 
+  def test_sync_due_date(self):
+    """Test adding due_date in Issue"""
+
+    due_date = "2018-09-13"
+    date_format = "%Y-%m-%d"
+    iti1 = factories.IssueTrackerIssueFactory(
+        enabled=True,
+        issue_id="1",
+        issue_tracked_obj=factories.IssueFactory(status="Draft")
+    )
+    iti2 = factories.IssueTrackerIssueFactory(
+        enabled=True,
+        issue_id="2",
+        issue_tracked_obj=factories.IssueFactory(status="Draft")
+    )
+
+    batches = [
+        {
+            "1": {
+                "status": "new",
+                "type": "BUG",
+                "priority": "P2",
+                "severity": "S2",
+                "custom_fields": [{
+                    "name": "Due Date",
+                    "value": due_date,
+                    "type": "Date",
+                    "display_string": "Due Date",
+                }],
+            },
+            "2": {
+                "status": "new",
+                "type": "BUG",
+                "priority": "P2",
+                "severity": "S2",
+                "custom_fields": [],
+            }
+        }
+    ]
+
+    # Perform action.
+    with mock.patch.object(sync_utils, "iter_issue_batches",
+                           return_value=batches):
+      issue_sync_job.sync_issue_attributes()
+
+    # Assert results.
+    issue1 = all_models.Issue.query.get(iti1.issue_tracked_obj.id)
+    self.assertEquals(issue1.due_date.strftime(date_format), due_date)
+
+    issue2 = all_models.Issue.query.get(iti2.issue_tracked_obj.id)
+    self.assertIsNone(issue2.due_date)
+
   def test_sync_issue_tracker_emails(self):
     """Test sync issue tracker emails.
 

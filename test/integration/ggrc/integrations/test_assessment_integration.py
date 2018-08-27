@@ -129,7 +129,7 @@ class TestIssueTrackerIntegration(SnapshotterBaseTestCase):
     }
 
     with mock.patch.object(sync_utils.issues, 'Client', return_value=cli_mock):
-      synchronization_jobs.sync_assessment_statuses()
+      synchronization_jobs.sync_assessment_attributes()
       cli_mock.update_issue.assert_called_once_with(
           iti_issue_id[0], {
               'status': 'ASSIGNED',
@@ -195,6 +195,38 @@ class TestIssueTrackerIntegration(SnapshotterBaseTestCase):
 
       issue = db.session.query(models.IssuetrackerIssue).get(iti.id)
       self.assertEqual(issue.title, new_title)
+
+  @mock.patch('ggrc.integrations.issues.Client.update_issue')
+  def test_update_issuetracker_due_date(self, mocked_update_issue):
+    """Test title sync in case it has been updated."""
+    with mock.patch.object(assessment_integration, '_is_issue_tracker_enabled',
+                           return_value=True):
+      iti_issue_id = []
+      iti = factories.IssueTrackerIssueFactory(enabled=True)
+      iti_issue_id.append(iti.issue_id)
+      asmt = iti.issue_tracked_obj
+      new_due_date = '2018-09-25'
+      custom_fields = [{
+          'name': 'Due Date',
+          'value': new_due_date,
+          'type': 'DATE',
+          'display_string': 'Due Date',
+      }]
+      self.api.put(asmt, {
+          'start_date': new_due_date,
+          'title': 'title'
+      })
+      kwargs = {'status': 'ASSIGNED',
+                'component_id': None,
+                'severity': None,
+                'title': 'title',
+                'hotlist_ids': [],
+                'priority': None,
+                'custom_fields': custom_fields}
+      mocked_update_issue.assert_called_once_with(iti_issue_id[0], kwargs)
+
+      issue = db.session.query(models.IssuetrackerIssue).get(iti.id)
+      self.assertEqual(issue.due_date.strftime("%Y-%m-%d"), new_due_date)
 
   # pylint: disable=protected-access
   # pylint: disable=too-many-locals
