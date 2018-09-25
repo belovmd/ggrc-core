@@ -63,6 +63,7 @@ def collect_issue_tracker_info(model_name, include_object=False,
             "type": iti.issue_type,
             "priority": iti.issue_priority,
             "severity": iti.issue_severity,
+            "due_date": iti.due_date,
         },
     }
 

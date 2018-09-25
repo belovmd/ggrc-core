@@ -26,7 +26,28 @@ ASSESSMENT_STATUSES_MAPPING = {
 }
 
 
-def sync_assessment_statuses():
+def get_statuses(assessment_state):
+  """Get assessment's statuses"""
+  status_value = ASSESSMENT_STATUSES_MAPPING.get(
+      assessment_state["status"]
+  )
+  return status_value
+
+
+def get_due_date(assessment_state):
+  """Get assessment's due_date"""
+  due_date = assessment_state["due_date"]
+  if due_date is not None:
+    return {
+        "name": "Due Date",
+        "value": due_date.strftime("%Y-%m-%d"),
+        "type": "Date",
+        "display_string": "Due Date",
+    }
+  return None
+
+
+def sync_assessment_attributes():  # noqa
   """Synchronizes issue tracker ticket statuses with the Assessment statuses.
 
   Checks for Assessments which are in sync with Issue Tracker issues and
@@ -39,7 +60,7 @@ def sync_assessment_statuses():
   )
   if not assessment_issues:
     return
-  logger.debug('Syncing state of %d issues.', len(assessment_issues))
+  logger.debug("Syncing state of %d issues.", len(assessment_issues))
 
   cli = issues.Client()
   processed_ids = set()
@@ -49,42 +70,53 @@ def sync_assessment_statuses():
       issue_info = assessment_issues.get(issue_id)
       if not issue_info:
         logger.warning(
-            'Got an unexpected issue from Issue Tracker: %s', issue_id)
-        continue
-
-      processed_ids.add(issue_id)
-      assessment_state = issue_info['state']
-
-      status_value = ASSESSMENT_STATUSES_MAPPING.get(
-          assessment_state["status"]
-      )
-      if not status_value:
-        logger.error(
-            'Inexistent Issue Tracker status for assessment ID=%d '
-            'with status: %s.', issue_info['object_id'], status_value
+            "Got an unexpected issue from Issue Tracker: %s", issue_id
         )
         continue
 
-      assessment_state["status"] = status_value
+      processed_ids.add(issue_id)
+      assessment_state = issue_info["state"]  # current state of assessment
+      issue_payload = {
+          field: assessment_state[field]
+          for field in FIELDS_TO_CHECK if field in assessment_state
+      }
+
+      status_value = get_statuses(assessment_state)
+      if not status_value:
+        logger.error(
+            "Inexistent Issue Tracker status for assessment ID=%d "
+            "with status: %s.", issue_info["object_id"], status_value
+        )
+        continue
+      issue_payload["status"] = status_value
+
+      custom_fields = []
+      due_date = get_due_date(assessment_state)
+      if due_date is not None:
+        custom_fields.append(due_date)
+
+      if custom_fields:
+        issue_payload["custom_fields"] = custom_fields
+
       if all(
-          assessment_state.get(field) == issuetracker_state.get(field)
+          issue_payload.get(field) == issuetracker_state.get(field)
           for field in FIELDS_TO_CHECK
-      ):
+      ) and not issue_payload.get("custom_fields"):
         continue
 
       try:
-        sync_utils.update_issue(cli, issue_id, assessment_state)
+        sync_utils.update_issue(cli, issue_id, issue_payload)
       except integrations_errors.Error as error:
         logger.error(
-            'Unable to update status of Issue Tracker issue ID=%s for '
-            'assessment ID=%d: %r',
-            issue_id, issue_info['object_id'], error)
+            "Unable to update status of Issue Tracker issue ID=%s for "
+            "assessment ID=%d: %r",
+            issue_id, issue_info["object_id"], error)
 
-  logger.debug('Sync is done, %d issue(s) were processed.', len(processed_ids))
+  logger.debug("Sync is done, %d issue(s) were processed.", len(processed_ids))
 
   missing_ids = set(assessment_issues) - processed_ids
   if missing_ids:
     logger.warning(
-        'Some issues are linked to Assessments '
-        'but were not found in Issue Tracker: %s',
-        ', '.join(str(i) for i in missing_ids))
+        "Some issues are linked to Assessments "
+        "but were not found in Issue Tracker: %s",
+        ", ".join(str(i) for i in missing_ids))
