@@ -323,6 +323,8 @@ def _handle_issuetracker(sender, obj=None, src=None, **kwargs):
   initial_assessment = kwargs.pop('initial_state', None)
 
   issue_tracker_info['title'] = obj.title
+  if not issue_tracker_info.get('due_date'):
+    issue_tracker_info['due_date'] = obj.start_date
 
   try:
     _update_issuetracker_issue(
@@ -856,7 +858,7 @@ def _create_issuetracker_info(assessment, issue_tracker_info):
       assessment, issue_tracker_info)
 
 
-def _update_issuetracker_issue(assessment, issue_tracker_info,
+def _update_issuetracker_issue(assessment, issue_tracker_info,  # noqa
                                initial_assessment, initial_info, request):
   """Collects information and sends a request to update external issue."""
   # pylint: disable=too-many-locals
@@ -911,6 +913,21 @@ def _update_issuetracker_issue(assessment, issue_tracker_info,
     issue_params['assignee'] = assignee_email
     issue_params['verifier'] = assignee_email
     issue_params['ccs'] = grouped_ccs
+
+  custom_fields = []
+
+  # handle due_date update
+  due_date = issue_tracker_info.get('due_date')
+  if due_date:
+    custom_fields.append({
+        "name": "Due Date",
+        "value": due_date.strftime("%Y-%m-%d"),
+        "type": "DATE",
+        "display_string": "Due Date"
+    })
+
+  if custom_fields:
+    issue_params['custom_fields'] = custom_fields
 
   if issue_params:
     # Resend all properties upon any change.
