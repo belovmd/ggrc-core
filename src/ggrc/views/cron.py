@@ -8,6 +8,7 @@ from traceback import format_exc
 
 from ggrc import extensions
 from ggrc.notifications import common
+from ggrc.integrations import synchronization_jobs
 
 
 # pylint: disable=invalid-name
@@ -54,6 +55,16 @@ def hourly_issue_tracker_sync_endpoint():
   return job_runner("HOURLY_CRON_JOBS")
 
 
+def sync_assessment_attributes():
+  """Endpoint running assessment attributes synchronization."""
+  return synchronization_jobs.sync_assessment_attributes()
+
+
+def sync_issue_attributes():
+  """Endpoint running issue attributes synchronization."""
+  return synchronization_jobs.sync_issue_attributes()
+
+
 def half_hour_cron_endpoint():
   """Endpoint running half hourly jobs from all modules"""
   return job_runner("HALF_HOUR_CRON_JOBS")
@@ -74,4 +85,16 @@ def init_cron_views(app):
   app.add_url_rule(
       "/half_hour_cron_endpoint", "half_hour_cron_endpoint",
       view_func=half_hour_cron_endpoint
+  )
+
+  app.add_url_rule(
+      "/sync_assessment_attributes"
+      "sync_assessment_attributes",
+      view_func=sync_assessment_attributes
+  )
+
+  app.add_url_rule(
+      "/sync_issue_attributes"
+      "sync_issue_attributes",
+      view_func=sync_issue_attributes
   )
