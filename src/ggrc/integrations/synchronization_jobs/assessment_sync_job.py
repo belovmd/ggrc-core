@@ -5,8 +5,11 @@
 
 import logging
 
+from sqlalchemy.sql import expression
+
 from ggrc.integrations import issues, integrations_errors
 from ggrc.integrations.synchronization_jobs import sync_utils
+from ggrc import models
 
 
 logger = logging.getLogger(__name__)
@@ -117,6 +120,114 @@ def sync_assessment_attributes():  # noqa
   missing_ids = set(assessment_issues) - processed_ids
   if missing_ids:
     logger.warning(
+        "Some issues are linked to Assessments "
+        "but were not found in Issue Tracker: %s",
+        ", ".join(str(i) for i in missing_ids))
+
+
+def test_sync_assessment_attributes():  # noqa
+  """Synchronizes issue tracker ticket statuses with the Assessment statuses.
+
+  Checks for Assessments which are in sync with Issue Tracker issues and
+  updates their statuses in accordance to the corresponding Assessments
+  if differ.
+  """
+
+  issue_params = {}
+
+  issuetracker_cls = models.IssuetrackerIssue
+  issue_objects = issuetracker_cls.query.filter(
+    issuetracker_cls.object_type == "Assessment",
+    issuetracker_cls.enabled == expression.true(),
+    issuetracker_cls.issue_id == 66495776,
+    ).all()
+
+  for iti in issue_objects:
+    sync_object = iti.issue_tracked_obj
+    if not sync_object:
+      logger.error(
+        "The %s corresponding to the Issue Tracker Issue ID=%s "
+        "does not exist.", "Assessment", iti.issue_id)
+      continue
+
+    status_value = sync_object.status
+    if not status_value:
+      logger.error(
+        'Inexistent Issue Tracker status for %s ID=%d '
+        'with status: %s.', "Assessment", sync_object.id, status_value)
+      continue
+
+    issue_params[iti.issue_id] = {
+      "object_id": sync_object.id,
+      "state": {
+        "status": status_value,
+        "type": iti.issue_type,
+        "priority": iti.issue_priority,
+        "severity": iti.issue_severity,
+        "due_date": iti.due_date,
+      },
+    }
+
+    assessment_issues = issue_params
+    if not assessment_issues:
+      return
+    logger.debug("Syncing state of %d issues.", len(assessment_issues))
+
+    cli = issues.Client()
+    processed_ids = set()
+    for batch in sync_utils.iter_issue_batches(assessment_issues.keys()):
+      for issue_id, issuetracker_state in batch.iteritems():
+        issue_id = str(issue_id)
+        issue_info = assessment_issues.get(issue_id)
+        if not issue_info:
+          logger.warning(
+            "Got an unexpected issue from Issue Tracker: %s", issue_id
+          )
+          continue
+
+        processed_ids.add(issue_id)
+        assessment_state = issue_info["state"]  # current state of assessment
+        issue_payload = {
+          field: assessment_state[field]
+          for field in FIELDS_TO_CHECK if field in assessment_state
+        }
+
+        status_value = get_statuses(assessment_state)
+        if not status_value:
+          logger.error(
+            "Inexistent Issue Tracker status for assessment ID=%d "
+            "with status: %s.", issue_info["object_id"], status_value
+          )
+          continue
+        issue_payload["status"] = status_value
+
+        custom_fields = []
+        due_date = get_due_date(assessment_state)
+        if due_date is not None:
+          custom_fields.append(due_date)
+
+        if custom_fields:
+          issue_payload["custom_fields"] = custom_fields
+
+        if all(
+          issue_payload.get(field) == issuetracker_state.get(field)
+          for field in FIELDS_TO_CHECK
+        ) and not issue_payload.get("custom_fields"):
+          continue
+
+        try:
+          sync_utils.update_issue(cli, issue_id, issue_payload)
+        except integrations_errors.Error as error:
+          logger.error(
+            "Unable to update status of Issue Tracker issue ID=%s for "
+            "assessment ID=%d: %r",
+            issue_id, issue_info["object_id"], error)
+
+    logger.debug("Sync is done, %d issue(s) were processed.", len(processed_ids))
+
+    missing_ids = set(assessment_issues) - processed_ids
+    if missing_ids:
+      logger.warning(
         "Some issues are linked to Assessments "
         "but were not found in Issue Tracker: %s",
         ", ".join(str(i) for i in missing_ids))

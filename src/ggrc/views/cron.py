@@ -9,7 +9,7 @@ from traceback import format_exc
 from ggrc import extensions
 from ggrc.notifications import common
 from ggrc.integrations import synchronization_jobs
-
+from ggrc.integrations.synchronization_jobs.assessment_sync_job import test_sync_assessment_attributes
 
 # pylint: disable=invalid-name
 logger = getLogger(__name__)
@@ -57,12 +57,18 @@ def hourly_issue_tracker_sync_endpoint():
 
 def sync_assessment_attributes():
   """Endpoint running assessment attributes synchronization."""
-  return synchronization_jobs.sync_assessment_attributes()
+  print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+  return  # synchronization_jobs.sync_assessment_attributes()
 
 
 def sync_issue_attributes():
   """Endpoint running issue attributes synchronization."""
   return synchronization_jobs.sync_issue_attributes()
+
+
+def sync_my_attributes():
+  """Endpoint running issue attributes synchronization."""
+  return test_sync_assessment_attributes()
 
 
 def half_hour_cron_endpoint():
@@ -97,4 +103,10 @@ def init_cron_views(app):
       "/sync_issue_attributes"
       "sync_issue_attributes",
       view_func=sync_issue_attributes
+  )
+  # raise Exception
+  app.add_url_rule(
+    "/sync_my_attributes"
+    "sync_my_attributes",
+    view_func=sync_my_attributes
   )
