@@ -98,7 +98,7 @@ def sync_statuses(issuetracker_state, sync_object):
 
 def sync_due_date(custom_fields, sync_object):
   """Sync issue object due date."""
-  issue_tracker_due_date = custom_fields.get("Due Date", {}).get("value")
+  issue_tracker_due_date = custom_fields.get("Due Date")
   date_format = "%Y-%m-%d"
 
   if issue_tracker_due_date:
@@ -148,8 +148,9 @@ def sync_issue_attributes():
       sync_verifier_email(issuetracker_state, sync_object, admin_role)
 
       custom_fields = {
-          field["name"]: field
+          field.keys()[0]: field.values()[0]
           for field in issuetracker_state.get("custom_fields", [])
+          if all(field.keys())
       }
       sync_due_date(custom_fields, sync_object)
 
