@@ -35,7 +35,7 @@ logger = getLogger(__name__)
 
 class RowConverter(object):
   """Base class for handling row data."""
-  # pylint: disable=too-few-public-methods
+  # pylint: disable=too-few-public-methods,too-many-instance-attributes
   def __init__(self, block_converter, object_class, headers, options):
     self.block_converter = block_converter
     self.object_class = object_class
@@ -44,6 +44,7 @@ class RowConverter(object):
     self.attrs = collections.OrderedDict()
     self.objects = collections.OrderedDict()
     self.old_values = {}
+    self.issue_tracker = {}
 
 
 class ImportRowConverter(RowConverter):
@@ -435,6 +436,10 @@ class ImportRowConverter(RowConverter):
       return
     for secondary_object in self.objects.values():
       secondary_object.insert_object()
+    if self.issue_tracker:
+      all_models.IssuetrackerIssue.create_or_update_from_dict(
+          self.obj, self.issue_tracker
+      )
 
 
 class ExportRowConverter(RowConverter):
@@ -442,7 +447,7 @@ class ExportRowConverter(RowConverter):
   def __init__(self, block_converter, object_class, headers, **options):
     super(ExportRowConverter, self).__init__(block_converter, object_class,
                                              headers, options)
-    if issubclass(self.obj, issue_tracker.IssueTracked):
+    if issubclass(type(self.obj), issue_tracker.IssueTracked):
       self.issue_tracker = self.obj.issue_tracker
 
   def handle_obj_row_data(self):

@@ -47,6 +47,8 @@ from ggrc.converters.handlers import document
 from ggrc.converters.handlers import evidence
 from ggrc.converters.handlers import custom_attribute
 from ggrc.converters.handlers import acl
+from ggrc.converters.handlers import issue_tracker
+
 from ggrc.converters.handlers.snapshot_instance_column_handler import (
     SnapshotInstanceColumnHandler
 )
@@ -118,6 +120,14 @@ _DEFAULT_COLUMN_HANDLERS_DICT = {
     "threat_source": handlers.TextColumnHandler,
     "threat_event": handlers.TextColumnHandler,
     "vulnerability": handlers.TextColumnHandler,
+
+    # IssueTracker fields
+    "component_id": issue_tracker.AddsColumnHandler,
+    "hotlist_id": issue_tracker.AddsColumnHandler,
+    "issue_priority": issue_tracker.PriorityColumnHandler,
+    "issue_severity": issue_tracker.SeverityColumnHandler,
+    "issue_title": issue_tracker.TitleColumnHandler,
+    "issue_type": issue_tracker.TypeColumnHandler,
 
     # Mapping column handlers
     "__mapping__:person": handlers.PersonMappingColumnHandler,

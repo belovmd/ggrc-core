@@ -22,10 +22,21 @@ class IssueTracked(object):
   Defines a backref in IssueTrackerIssue model named ModelName_issue_tracked.
   """
   # pylint: disable=too-few-public-methods
-
   _api_attrs = reflection.ApiAttributes(
       reflection.Attribute("issue_tracker", create=False, update=False),
   )
+
+  _aliases = {
+      "issue_title": {
+          "display_name": "Issue Title",
+          "mandatory": True,
+      },
+      "issue_priority": "Priority",
+      "issue_severity": "Severity",
+      "issue_type": "Issue Type",
+      "component_id": "Component ID",
+      "hotlist_id": "Hotlist ID",
+  }
 
   def __init__(self, *args, **kwargs):
     super(IssueTracked, self).__init__(*args, **kwargs)
