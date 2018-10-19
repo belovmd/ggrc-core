@@ -64,3 +64,21 @@ class SeverityColumnHandler(IssueTrackerColumnHandler):
     if self.dry_run or not self.value:
       return
     self.row_converter.issue_tracker[self.key] = self.value
+
+
+class AddsColumnHandler(IssueTrackerColumnHandler):
+  """Column handler for hotlist and components ids"""
+
+  def parse_item(self):
+    try:
+      value = int(self.raw_value)
+    except ValueError:
+      self.add_warning(errors.WRONG_VALUE_DEFAULT,
+                       column_name=self.display_name)
+      return self.default_values.get(self.key)
+    return value
+
+  def set_obj_attr(self):
+    if self.dry_run or not self.value:
+      return
+    self.row_converter.issue_tracker[self.key] = self.value
