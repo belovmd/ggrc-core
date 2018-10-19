@@ -82,3 +82,12 @@ class AddsColumnHandler(IssueTrackerColumnHandler):
     if self.dry_run or not self.value:
       return
     self.row_converter.issue_tracker[self.key] = self.value
+
+
+class TitleColumnHandler(IssueTrackerColumnHandler,
+                         handlers.TextColumnHandler):
+  """Column handler for Issue title for IssueTracked models"""
+  def set_obj_attr(self):
+    if self.dry_run or not self.value:
+      return
+    self.row_converter.issue_tracker[self.key] = self.value
