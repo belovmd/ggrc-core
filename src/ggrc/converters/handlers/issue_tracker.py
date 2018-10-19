@@ -11,8 +11,17 @@ from ggrc.converters import errors
 class IssueTrackerColumnHandler(handlers.ColumnHandler):
   """Column handler used for Issue Tracker related fields.
 
-  This class provides method for Issue Tracker fields export.
+  This class provides method for Issue Tracker fields export and Issue Traceker
+  default values.
   """
+  default_values = {
+      'issue_priority': 'P2',
+      'issue_severity': 'S2',
+      'issue_type': 'PROCESS',
+      'component_id': 188208,
+      'hotlist_id': 864697,
+  }
+
   def get_value(self):
     return self.row_converter.issue_tracker.get(self.key, "")
 
@@ -41,7 +50,7 @@ class SeverityColumnHandler(IssueTrackerColumnHandler):
   """Column handler for Priority Issue Tracker field."""
   def __init__(self, row_converter, key, **options):
     self.valid_states = \
-      params_container.IssueTrackerParamsContainer.AVAILABLE_SEVERITIES
+        params_container.IssueTrackerParamsContainer.AVAILABLE_SEVERITIES
     super(SeverityColumnHandler, self).__init__(row_converter, key, **options)
 
   def parse_item(self):
