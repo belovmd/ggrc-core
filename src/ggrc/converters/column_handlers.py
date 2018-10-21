@@ -124,10 +124,10 @@ _DEFAULT_COLUMN_HANDLERS_DICT = {
     # IssueTracker fields
     "component_id": issue_tracker.AddsColumnHandler,
     "hotlist_id": issue_tracker.AddsColumnHandler,
-    "issue_priority": issue_tracker.PriorityColumnHandler,
-    "issue_severity": issue_tracker.SeverityColumnHandler,
+    "issue_priority": issue_tracker.IssueTrackerWithValidStates,
+    "issue_severity": issue_tracker.IssueTrackerWithValidStates,
     "issue_title": issue_tracker.TitleColumnHandler,
-    "issue_type": issue_tracker.TypeColumnHandler,
+    "issue_type": issue_tracker.IssueTrackerWithValidStates,
 
     # Mapping column handlers
     "__mapping__:person": handlers.PersonMappingColumnHandler,

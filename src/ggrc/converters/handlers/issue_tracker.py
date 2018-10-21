@@ -25,6 +25,11 @@ class IssueTrackerColumnHandler(handlers.ColumnHandler):
   def get_value(self):
     return self.row_converter.issue_tracker.get(self.key, "")
 
+  def set_obj_attr(self):
+    if self.dry_run or not self.value:
+      return
+    self.row_converter.issue_tracker[self.key] = self.value
+
 
 class IssueTrackerWithValidStates(IssueTrackerColumnHandler):
   """Column handler for columns with available valid states"""
@@ -53,24 +58,6 @@ class IssueTrackerWithValidStates(IssueTrackerColumnHandler):
     return value
 
 
-class PriorityColumnHandler(IssueTrackerWithValidStates):
-  """Column handler for Priority Issue Tracker field."""
-
-  def set_obj_attr(self):
-    if self.dry_run or not self.value:
-      return
-    self.row_converter.issue_tracker[self.key] = self.value
-
-
-class SeverityColumnHandler(IssueTrackerWithValidStates):
-  """Column handler for Priority Issue Tracker field."""
-
-  def set_obj_attr(self):
-    if self.dry_run or not self.value:
-      return
-    self.row_converter.issue_tracker[self.key] = self.value
-
-
 class AddsColumnHandler(IssueTrackerColumnHandler):
   """Column handler for hotlist and components ids"""
 
@@ -83,25 +70,8 @@ class AddsColumnHandler(IssueTrackerColumnHandler):
       return self.default_values.get(self.key)
     return value
 
-  def set_obj_attr(self):
-    if self.dry_run or not self.value:
-      return
-    self.row_converter.issue_tracker[self.key] = self.value
-
 
 class TitleColumnHandler(IssueTrackerColumnHandler,
                          handlers.TextColumnHandler):
   """Column handler for Issue title for IssueTracked models"""
-  def set_obj_attr(self):
-    if self.dry_run or not self.value:
-      return
-    self.row_converter.issue_tracker[self.key] = self.value
-
-
-class TypeColumnHandler(IssueTrackerWithValidStates):
-  """Column handler for Ticket Type Issue Tracker field."""
-
-  def set_obj_attr(self):
-    if self.dry_run or not self.value:
-      return
-    self.row_converter.issue_tracker[self.key] = self.value
+  pass
