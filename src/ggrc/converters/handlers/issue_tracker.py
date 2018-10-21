@@ -21,6 +21,20 @@ class IssueTrackerColumnHandler(handlers.ColumnHandler):
       'component_id': 188208,
       'hotlist_id': 864697,
   }
+  available_items = {
+      'issue_type':
+          params_container.IssueTrackerParamsContainer.AVAILABLE_TYPES,
+      'issue_priority':
+          params_container.IssueTrackerParamsContainer.AVAILABLE_PRIORITIES,
+      'issue_severity':
+          params_container.IssueTrackerParamsContainer.AVAILABLE_SEVERITIES,
+  }
+
+  def __init__(self, row_converter, key, **options):
+    self.valid_states = self.available_items.get(key)
+    super(IssueTrackerColumnHandler, self).__init__(row_converter,
+                                                    key,
+                                                    **options)
 
   def get_value(self):
     return self.row_converter.issue_tracker.get(self.key, "")
@@ -28,10 +42,6 @@ class IssueTrackerColumnHandler(handlers.ColumnHandler):
 
 class PriorityColumnHandler(IssueTrackerColumnHandler):
   """Column handler for Priority Issue Tracker field."""
-  def __init__(self, row_converter, key, **options):
-    self.valid_states = \
-        params_container.IssueTrackerParamsContainer.AVAILABLE_PRIORITIES
-    super(PriorityColumnHandler, self).__init__(row_converter, key, **options)
 
   def parse_item(self):
     value = self.raw_value.upper()
@@ -48,10 +58,6 @@ class PriorityColumnHandler(IssueTrackerColumnHandler):
 
 class SeverityColumnHandler(IssueTrackerColumnHandler):
   """Column handler for Priority Issue Tracker field."""
-  def __init__(self, row_converter, key, **options):
-    self.valid_states = \
-        params_container.IssueTrackerParamsContainer.AVAILABLE_SEVERITIES
-    super(SeverityColumnHandler, self).__init__(row_converter, key, **options)
 
   def parse_item(self):
     value = self.raw_value.upper()
@@ -95,10 +101,6 @@ class TitleColumnHandler(IssueTrackerColumnHandler,
 
 class TypeColumnHandler(IssueTrackerColumnHandler):
   """Column handler for Ticket Type Issue Tracker field."""
-  def __init__(self, row_converter, key, **options):
-    self.valid_states = \
-        params_container.IssueTrackerParamsContainer.AVAILABLE_TYPES
-    super(TypeColumnHandler, self).__init__(row_converter, key, **options)
 
   def parse_item(self):
     value = self.raw_value.upper()
