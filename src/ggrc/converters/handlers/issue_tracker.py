@@ -2,6 +2,8 @@
 # Licensed under http://www.apache.org/licenses/LICENSE-2.0 <see LICENSE file>
 """Handlers for Issue Tracker fields"""
 
+import re
+
 from ggrc.converters.handlers import handlers
 from ggrc.models.hooks.issue_tracker import \
     issue_tracker_params_container as params_container
@@ -71,7 +73,25 @@ class AddsColumnHandler(IssueTrackerColumnHandler):
     return value
 
 
-class TitleColumnHandler(IssueTrackerColumnHandler,
-                         handlers.TextColumnHandler):
+class TitleColumnHandler(IssueTrackerColumnHandler):
   """Column handler for Issue title for IssueTracked models"""
-  pass
+
+  def get_value(self):
+    return self.row_converter.issue_tracker.get("title", "")
+
+  def parse_item(self):
+    """ Remove multiple spaces and new lines from text """
+    value = self.raw_value or ""
+    value = self.clean_whitespaces(value)
+    if not value:
+      self.add_error(errors.MISSING_VALUE_ERROR, column_name=self.display_name)
+    return value
+
+  @staticmethod
+  def clean_whitespaces(value):
+    return re.sub(r'\s+', " ", value)
+
+  def set_obj_attr(self):
+    if self.dry_run or not self.value:
+      return
+    self.row_converter.issue_tracker["title"] = self.value

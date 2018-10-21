@@ -27,10 +27,6 @@ class IssueTracked(object):
   )
 
   _aliases = {
-      "issue_title": {
-          "display_name": "Issue Title",
-          "mandatory": True,
-      },
       "issue_priority": "Priority",
       "issue_severity": "Severity",
       "issue_type": "Issue Type",

@@ -78,6 +78,7 @@ class Issue(Roleable,
           "view_only": True,
           "mandatory": False,
       },
+      "issue_title": "Issue Title",
       "status": {
           "display_name": "State",
           "mandatory": False,
