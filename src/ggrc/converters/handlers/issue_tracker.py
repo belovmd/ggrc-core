@@ -21,6 +21,14 @@ class IssueTrackerColumnHandler(handlers.ColumnHandler):
       'component_id': 188208,
       'hotlist_id': 864697,
   }
+
+  def get_value(self):
+    return self.row_converter.issue_tracker.get(self.key, "")
+
+
+class IssueTrackerWithValidStates(IssueTrackerColumnHandler):
+  """Column handler for columns with available valid states"""
+
   available_items = {
       'issue_type':
           params_container.IssueTrackerParamsContainer.AVAILABLE_TYPES,
@@ -32,23 +40,21 @@ class IssueTrackerColumnHandler(handlers.ColumnHandler):
 
   def __init__(self, row_converter, key, **options):
     self.valid_states = self.available_items.get(key)
-    super(IssueTrackerColumnHandler, self).__init__(row_converter,
-                                                    key,
-                                                    **options)
-
-  def get_value(self):
-    return self.row_converter.issue_tracker.get(self.key, "")
-
-
-class PriorityColumnHandler(IssueTrackerColumnHandler):
-  """Column handler for Priority Issue Tracker field."""
+    super(IssueTrackerWithValidStates, self).__init__(row_converter,
+                                                      key,
+                                                      **options)
 
   def parse_item(self):
     value = self.raw_value.upper()
     if value not in self.valid_states:
-      self.add_warning(errors.WRONG_VALUE, column_name=self.display_name)
-      return None
+      self.add_warning(errors.WRONG_VALUE_DEFAULT,
+                       column_name=self.display_name)
+      return self.default_values.get(self.key)
     return value
+
+
+class PriorityColumnHandler(IssueTrackerWithValidStates):
+  """Column handler for Priority Issue Tracker field."""
 
   def set_obj_attr(self):
     if self.dry_run or not self.value:
@@ -56,15 +62,8 @@ class PriorityColumnHandler(IssueTrackerColumnHandler):
     self.row_converter.issue_tracker[self.key] = self.value
 
 
-class SeverityColumnHandler(IssueTrackerColumnHandler):
+class SeverityColumnHandler(IssueTrackerWithValidStates):
   """Column handler for Priority Issue Tracker field."""
-
-  def parse_item(self):
-    value = self.raw_value.upper()
-    if value not in self.valid_states:
-      self.add_warning(errors.WRONG_VALUE, column_name=self.display_name)
-      return None
-    return value
 
   def set_obj_attr(self):
     if self.dry_run or not self.value:
@@ -99,15 +98,8 @@ class TitleColumnHandler(IssueTrackerColumnHandler,
     self.row_converter.issue_tracker[self.key] = self.value
 
 
-class TypeColumnHandler(IssueTrackerColumnHandler):
+class TypeColumnHandler(IssueTrackerWithValidStates):
   """Column handler for Ticket Type Issue Tracker field."""
-
-  def parse_item(self):
-    value = self.raw_value.upper()
-    if value not in self.valid_states:
-      self.add_warning(errors.WRONG_VALUE, column_name=self.display_name)
-      return None
-    return value
 
   def set_obj_attr(self):
     if self.dry_run or not self.value:
