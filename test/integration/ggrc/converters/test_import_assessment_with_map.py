@@ -37,6 +37,15 @@ class TestImportAssessmentWithMap(TestCase, WithQueryApi):
       factories.RelationshipFactory(
           source=audit, destination=assessment
       )
+      factories.IssueTrackerIssueFactory(
+          component_id=12345,
+          hotlist_id=12345,
+          title="tickettitle",
+          issue_type="PROCESS",
+          issue_severity="S0",
+          issue_priority="P0",
+          issue_tracked_obj=assessment,
+      )
       regulation = factories.RegulationFactory()
       self.regulation_id = regulation.id
       self.regulation_slug = regulation.slug
