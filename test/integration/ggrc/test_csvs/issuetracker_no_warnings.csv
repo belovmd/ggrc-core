@@ -1,0 +1,29 @@
+Object type,"Must be unique. Can be left empty for auto generation. If updating or deleting, code is required",,List of people with 'Program Managers' role,,,,,,,,
+Program,Code*,Title*,Program Managers*,,,,,,,,
+,PROGRAM-1,title HO-C4DXQ,user@example.com,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+Object type,"Must be unique. Can be left empty for auto generation. If updating or deleting, code is required",,,"Options are:
+Planned
+In Progress
+Manager Review
+Ready for External Review
+Completed
+Deprecated",List of people with 'Audit Captains' role,,,,,,
+Audit,Code*,Program*,Title*,State*,Audit Captains*,Component ID,Hotlist ID,Priority,Severity,Issue Type,
+,AUDIT-1,PROGRAM-1,title 5M7QL-L_,Planned,user@example.com,1,2,P0,S0,PROCESS,
+,,,,,,,,,,,
+,,,,,,,,,,,
+Object type,"Must be unique. Can be left empty for auto generation. If updating or deleting, code is required",,,,,,,,,,
+Assessment Template,Code*,Audit*,Title*,Component ID,Default Assignees*,Hotlist ID,Priority,Severity,Issue Type,Object Under Assessment*,
+,TEMPLATE-1,AUDIT-1,test template,3,Principal Assignees,4,P1,S1,PROCESS,Control,
+,,,,,,,,,,,
+,,,,,,,,,,,
+Object type,"Must be unique. Can be left empty for auto generation. If updating or deleting, code is required",,,List of people with 'Assignees' role,List of people with 'Creators' role,,,,,,
+Assessment,Code*,Audit*,Title*,Assignees*,Creators*,Component ID,Hotlist ID,Priority,Severity,Issue Title,Issue Type
+,ASSESSMENT-1,AUDIT-1,title M0CKGTMF,user@example.com,user@example.com,5,6,P2,S2,assessment ticket title,PROCESS
+,,,,,,,,,,,
+,,,,,,,,,,,
+Object type,"Must be unique. Can be left empty for auto generation. If updating or deleting, code is required",,List of people with 'Admin' role,,,,,,,,
+Issue,Code*,Title*,Admin*,Component ID,Hotlist ID,Priority,Severity,Issue Title,Issue Type,,
+,ISSUE-1,testissue,user@example.com,7,8,P3,S3,issue ticket title,PROCESS,,
