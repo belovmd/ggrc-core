@@ -3,6 +3,8 @@
 
 """Test Ticket Tracker attribute export for assessment."""
 
+import ddt
+
 from mock import patch
 
 from ggrc import db
@@ -14,6 +16,7 @@ from integration.ggrc import api_helper
 from integration.ggrc.models import factories
 
 
+@ddt.ddt
 class TestTicketTrackerExport(TestCase):
   """Test Ticket Tracker attribute export for assessment."""
 
@@ -25,7 +28,7 @@ class TestTicketTrackerExport(TestCase):
   @patch('ggrc.integrations.issues.Client.update_issue')
   @patch.object(settings, "ISSUE_TRACKER_ENABLED", True)
   def test_assessment_export(self, _):
-    """Export of Ticket Tracker attribute of assessment. """
+    """Test export Assessment Ticket Tracker attribute(link to issue)."""
     with patch.object(models.hooks.issue_tracker.assessment_integration,
                       '_is_issue_tracker_enabled', return_value=True):
       iti = factories.IssueTrackerIssueFactory()
@@ -68,8 +71,8 @@ class TestTicketTrackerExport(TestCase):
 
   # pylint: disable=unused-argument
   @patch('ggrc.integrations.issues.Client.update_issue')
-  def test_issue_export(self, update_mock):
-    """Export of Ticket Tracker attribute of Issue."""
+  def test_issue_export_link(self, update_mock):
+    """Export Issue Ticket Tracker attribute (link to ticket)."""
     with patch.object(settings, "ISSUE_TRACKER_ENABLED", True):
       issue_url = "http://issue/1111"
       factories.IssueTrackerIssueFactory(
@@ -86,3 +89,56 @@ class TestTicketTrackerExport(TestCase):
       self.assertEqual(response.status_code, 200)
       self.assertIn("Ticket Tracker", response.data)
       self.assertIn(issue_url, response.data)
+
+  @ddt.data("Issue", "Assessment", "AssessmentTemplate", "Audit")
+  def test_issue_export(self, model_name):
+    """Test export for issuetracked attributes.
+
+    Attribute list: component_id, hotlist_id, issue_type,
+    issue_priority, issue_severity"""
+    factory = factories.get_model_factory(model_name)
+    with factories.single_commit():
+      factories.IssueTrackerIssueFactory(
+          issue_tracked_obj=factory(),
+          component_id=12345,
+          hotlist_id=54321,
+          issue_type="PROCESS",
+          issue_severity="S4",
+          issue_priority="P4",
+      )
+    data = [{"object_name": model_name,
+             "fields": "all",
+             "filters": {"expression": {}}}]
+
+    response = self.export_csv(data)
+    self.assertEqual(response.status_code, 200)
+
+    self.assertIn("Component ID", response.data)
+    self.assertIn("12345", response.data)
+    self.assertIn("Hotlist ID", response.data)
+    self.assertIn("54321", response.data)
+    self.assertIn("Issue Type", response.data)
+    self.assertIn("PROCESS", response.data)
+    self.assertIn("Priority", response.data)
+    self.assertIn("P4", response.data)
+    self.assertIn("Severity", response.data)
+    self.assertIn("S4", response.data)
+
+  @ddt.data("Issue", "Assessment")
+  def test_issue_title_export(self, model_name):
+    """Test export for issuetracked title attribute."""
+    factory = factories.get_model_factory(model_name)
+    with factories.single_commit():
+      factories.IssueTrackerIssueFactory(
+          issue_tracked_obj=factory(),
+          title="tickettitle",
+      )
+    data = [{"object_name": model_name,
+             "fields": "all",
+             "filters": {"expression": {}}}]
+
+    response = self.export_csv(data)
+    self.assertEqual(response.status_code, 200)
+
+    self.assertIn("Issue Title", response.data)
+    self.assertIn("tickettitle", response.data)
