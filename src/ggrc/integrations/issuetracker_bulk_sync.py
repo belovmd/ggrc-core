@@ -22,7 +22,6 @@ from ggrc.models.hooks.issue_tracker import integration_utils
 from ggrc import utils
 from ggrc.notifications import common
 from ggrc.notifications.data_handlers import get_object_url
-from ggrc.rbac import permissions
 from ggrc.utils import benchmark
 
 logger = logging.getLogger(__name__)
@@ -239,13 +238,11 @@ class IssueTrackerBulkCreator(object):
   def bulk_sync_allowed(obj):
     """Check if user has permissions to synchronize issuetracker issue.
 
-    Args:
-        obj: instance for which issue should be generated/updated.
-
     Returns:
         True if it's allowed, False if not allowed.
     """
-    return permissions.is_allowed_update_for(obj)
+    del obj
+    return True
 
   def update_db_issues(self, issues_info):
     """Update db IssueTracker issues with provided data.
