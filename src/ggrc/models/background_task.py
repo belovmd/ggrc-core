@@ -143,7 +143,10 @@ def _add_task_acl(task):
 
 def collect_task_headers():
   """Get headers required for appengine background task run."""
-  return Headers({k: v for k, v in request.headers if k not in BANNED_HEADERS})
+  headers = {}
+  if hasattr(request, "headers"):
+    headers = {k: v for k, v in request.headers if k not in BANNED_HEADERS}
+  return Headers(headers)
 
 
 # pylint: disable=too-many-arguments
