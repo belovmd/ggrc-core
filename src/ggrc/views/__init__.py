@@ -858,6 +858,25 @@ def generate_issues():
   return task_queue.task_scheduled_response()
 
 
+def generate_issues_from_import(request_data=None):
+  """Bulk generate linked issuetracker issues for provided objects.
+
+  This function creates issuetracker tickets for all provided objects
+  (if such tickets haven't been created before). Can be called inside import
+  task.
+  """
+  method = "POST"
+  validate_bulk_sync_data(request_data)
+  task_queue = create_task(
+      "generate_issues",
+      "/_background_tasks/run_issues_generation",
+      run_issues_generation,
+      parameters=request_data,
+      method=method,
+  )
+  return task_queue.task_scheduled_response()
+
+
 @app.route("/update_issues", methods=["POST"])
 @login_required
 def update_issues():
@@ -872,6 +891,25 @@ def update_issues():
       url_for(run_issues_update.__name__),
       run_issues_update,
       request.json,
+  )
+  return task_queue.task_scheduled_response()
+
+
+def update_issues_from_import(request_data=None):
+  """Bulk update linked issuetracker issues for provided objects.
+
+  This endpoint update issuetracker tickets for all provided objects
+  to the current state in the app. Can be called inside import
+  task.
+  """
+  method = "POST"
+  validate_bulk_sync_data(request_data)
+  task_queue = create_task(
+      "update_issues",
+      "/_background_tasks/run_issues_update",
+      run_issues_update,
+      parameters=request_data,
+      method=method,
   )
   return task_queue.task_scheduled_response()
 
