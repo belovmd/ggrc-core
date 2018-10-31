@@ -5,7 +5,13 @@
 import ddt
 import mock
 
+from flask import g
+
 from ggrc import db
+from ggrc import views
+from ggrc.app import app
+
+from ggrc.access_control import role
 from ggrc.integrations import integrations_errors, issuetracker_bulk_sync
 from ggrc.integrations.synchronization_jobs import sync_utils
 from ggrc.models import all_models, inflector
@@ -241,6 +247,32 @@ class TestBulkIssuesGenerate(TestBulkIssuesSync):
     result = creator.get_issuetracked_objects("Issue", issue_ids)
     result_ids = [issue.id for issue in result]
     self.assertEqual(set(issue_ids_enabled), set(result_ids))
+
+  def test_issue_generate_call(self):
+    """Test generate_issue call creates task for bulk generate."""
+    user = all_models.Person.query.filter_by(email="user@example.com").one()
+    setattr(g, '_current_user', user)
+    _, assessment_ids = self.setup_assessments(3)
+
+    asmnt_issuetracker_info = [
+        ("Assessment", id_, "123", "321") for id_ in assessment_ids
+    ]
+    data = {
+        "objects": [{
+            "type": type_,
+            "id": id_,
+            "hotlist_ids": hotlist_id,
+            "component_id": component_id,
+        } for type_, id_, hotlist_id, component_id in asmnt_issuetracker_info],
+    }
+
+    response = app.make_response(("success", 200, ))
+    func_addr = "ggrc.integrations.issuetracker_bulk_sync." \
+                "IssueTrackerBulkCreator.sync_issuetracker"
+    with mock.patch(func_addr, return_value=response) as generate_mock:
+      views.generate_issues_from_import(data)
+
+    generate_mock.assert_called_once()
 
   def test_asmnt_bulk_generate(self):
     """Test bulk generation of issues for Assessments."""
@@ -649,6 +681,32 @@ class TestBulkIssuesChildGenerate(TestBulkIssuesSync):
 @ddt.ddt
 class TestBulkIssuesUpdate(TestBulkIssuesSync):
   """Test bulk issues update."""
+
+  def test_issue_update_call(self):
+    """Test update_issue call creates task for bulk update."""
+    user = all_models.Person.query.filter_by(email="user@example.com").one()
+    setattr(g, '_current_user', user)
+    _, assessment_ids = self.setup_assessments(3)
+
+    asmnt_issuetracker_info = [
+        ("Assessment", id_, "123", "321") for id_ in assessment_ids
+    ]
+    data = {
+        "objects": [{
+            "type": type_,
+            "id": id_,
+            "hotlist_ids": hotlist_id,
+            "component_id": component_id,
+        } for type_, id_, hotlist_id, component_id in asmnt_issuetracker_info],
+    }
+
+    response = app.make_response(("success", 200, ))
+    func_addr = "ggrc.integrations.issuetracker_bulk_sync." \
+                "IssueTrackerBulkUpdater.sync_issuetracker"
+    with mock.patch(func_addr, return_value=response) as update_mock:
+      views.update_issues_from_import(data)
+
+    update_mock.assert_called_once()
 
   def test_asmnt_bulk_update(self):
     """Test bulk update of issues for Assessments."""
