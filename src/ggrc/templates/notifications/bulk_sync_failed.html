@@ -1,0 +1,51 @@
+{#
+Copyright (C) 2018 Google Inc.
+Licensed under http://www.apache.org/licenses/LICENSE-2.0 <see LICENSE file>
+#}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+{% import 'notifications/style.html' as style %}
+
+<html xmlns="http://www.w3.org/1999/xhtml" style="margin: 0; padding: 0;">
+<head>
+
+<meta name="viewport" content="width=device-width" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<title>Google GRC Email</title>
+
+</head>
+
+<body {{ style.body_style() }}>
+  <div {{ style.bulk_sync_container() }} >
+    <div {{ style.bulk_sync_block() }}>
+      <h1 {{ style.bulk_sync_title() }}>
+        {{ sync_data.title }}
+      </h1>
+
+      <hr>
+      <p {{ style.header_color() }}>
+        {{ sync_data.email_text }}
+      </p>
+      <ul {{ style.list_wrap() }} >
+
+      <table><tbody>
+        {% for obj in sync_data.objects %}
+          <tr>
+
+            <td><a href="{{ obj.url }}">{{ obj.title }}</a></td>
+            <td>&emsp;
+              <span {{ style.header_color() }}>Code:</span> {{ obj.code }}
+            </td>
+
+          </tr>
+        {% endfor %}
+      </tbody></table>
+
+      </ul>
+    </div>
+    <div {{ style.bulk_sync_footer() }}>Google GRC</div>
+  </div>
+</body>
+</html>

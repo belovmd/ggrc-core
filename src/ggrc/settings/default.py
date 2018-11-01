@@ -113,7 +113,16 @@ EMAIL_BULK_CHILD_SYNC_FAILED = JINJA2.get_template(
     "notifications/bulk_child_sync_failed.html"
 )
 EMAIL_BULK_CHILD_SYNC_EXCEPTION = JINJA2.get_template(
-    "notifications/bulk_child_sync_exception.html"
+    "notifications/bulk_sync_exception.html"
+)
+EMAIL_BULK_SYNC_SUCCEEDED = JINJA2.get_template(
+    "notifications/bulk_sync_succeded.html"
+)
+EMAIL_BULK_SYNC_FAILED = JINJA2.get_template(
+    "notifications/bulk_sync_failed.html"
+)
+EMAIL_BULK_SYNC_EXCEPTION = JINJA2.get_template(
+    "notifications/bulk_sync_exception.html"
 )
 
 USE_APP_ENGINE_ASSETS_SUBDOMAIN = False
