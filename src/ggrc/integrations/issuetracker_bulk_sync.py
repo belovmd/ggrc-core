@@ -478,7 +478,7 @@ class IssueTrackerBulkChildCreator(IssueTrackerBulkCreator):
 
     data = {"title": parent.title}
     if failed:
-      body = settings.EMAIL_BULK_SYNC_EXCEPTION.render()
+      body = settings.EMAIL_BULK_CHILD_SYNC_EXCEPTION.render()
     elif errors:
       data["assessments"] = [
           {
@@ -487,9 +487,9 @@ class IssueTrackerBulkChildCreator(IssueTrackerBulkCreator):
               "title": obj.title,
           } for (obj, _) in errors
       ]
-      body = settings.EMAIL_BULK_SYNC_FAILED.render(sync_data=data)
+      body = settings.EMAIL_BULK_CHILD_SYNC_FAILED.render(sync_data=data)
     else:
-      body = settings.EMAIL_BULK_SYNC_SUCCEEDED.render(sync_data=data)
+      body = settings.EMAIL_BULK_CHILD_SYNC_SUCCEEDED.render(sync_data=data)
 
     receiver = login.get_current_user()
     common.send_email(receiver.email, ISSUETRACKER_SYNC_TITLE, body)
