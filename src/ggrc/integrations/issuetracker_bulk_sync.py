@@ -44,11 +44,32 @@ class IssueTrackerBulkCreator(object):
       "Issue": models.hooks.issue_tracker.issue_integration,
   }
 
+  SUCCESS_TITLE = (
+      'Ticket generation for your GGRC import {filename} was completed '
+      'successfully.'
+  )
+  SUCCESS_TEXT = (
+      'The assessments or the issues from the import file that required '
+      'tickets generation (had tickets integration turned on) have been '
+      'successfully linked with the tickets.'
+  )
+  ERROR_TITLE = (
+      'There were some errors in generating tickets for your GGRC import '
+      '{filename}'
+  )
+  ERROR_TEXT = (
+      'There were errors that prevented generation of some tickets based on '
+      'your import file submission. The error may be due to your lack to '
+      'sufficient access to generate/update the tickets. Here is the list of '
+      'assessments or issues that were not updated.'
+  )
+  EXCEPTION_TEXT = "Something went wrong, we are looking into it."
+
   def __init__(self):
     self.break_on_errs = False
     self.client = issues.Client()
 
-  def sync_issuetracker(self, objects_data):
+  def sync_issuetracker(self, objects_data, filename='', recipient=''):
     """Generate IssueTracker issues in bulk.
 
     Args:
@@ -57,22 +78,28 @@ class IssueTrackerBulkCreator(object):
     Returns:
         flask.wrappers.Response - response with result of generation.
     """
-    issuetracked_info = []
-    with benchmark("Load issuetracked objects from database"):
-      objects_info = self.group_objs_by_type(objects_data)
-      for obj_type, obj_id_info in objects_info.items():
-        for obj in self.get_issuetracked_objects(obj_type, obj_id_info.keys()):
-          issuetracked_info.append(
-              IssuetrackedObjInfo(obj, *obj_id_info[obj.id])
-          )
+    try:
+      issuetracked_info = []
+      with benchmark("Load issuetracked objects from database"):
+        objects_info = self.group_objs_by_type(objects_data)
+        for obj_type, obj_id_info in objects_info.items():
+          for obj in self.get_issuetracked_objects(obj_type,
+                                                   obj_id_info.keys()):
+            issuetracked_info.append(
+                IssuetrackedObjInfo(obj, *obj_id_info[obj.id])
+            )
 
     created, errors = self.handle_issuetracker_sync(issuetracked_info)
 
-    logger.info(
-        "Synchronized issues count: %s, failed count: %s",
-        len(created),
-        len(errors)
-    )
+      logger.info(
+          "Synchronized issues count: %s, failed count: %s",
+          len(created),
+          len(errors),
+      )
+    except:  # pylint: disable=bare-except
+      self.send_notification(filename, recipient, failed=True)
+    else:
+      self.send_notification(filename, recipient, errors=errors)
     return self.make_response(errors)
 
   @staticmethod
@@ -361,9 +388,53 @@ class IssueTrackerBulkCreator(object):
         [("Content-Type", "application/json")]
     ))
 
+  def send_notification(self, filename, recipient, errors=None, failed=False):
+    """Send mail notification with information about errors."""
+    data = {}
+    if failed:
+      data["title"] = self.ERROR_TITLE.format(filename=filename)
+      data["email_text"] = self.EXCEPTION_TEXT
+      body = settings.EMAIL_BULK_SYNC_EXCEPTION.render(sync_data=data)
+    elif errors:
+      data["objects"] = [
+          {
+              "url": get_object_url(obj),
+              "code": obj.slug,
+              "title": obj.title,
+          } for (obj, _) in errors
+      ]
+      data["title"] = self.ERROR_TITLE.format(filename=filename)
+      data["email_text"] = self.ERROR_TEXT.format(filename=filename)
+      body = settings.EMAIL_BULK_SYNC_FAILED.render(sync_data=data)
+    else:
+      data["title"] = self.SUCCESS_TITLE.format(filename=filename)
+      data["email_text"] = self.SUCCESS_TEXT.format(filename=filename)
+      body = settings.EMAIL_BULK_SYNC_SUCCEEDED.render(sync_data=data)
+
+    common.send_email(recipient, ISSUETRACKER_SYNC_TITLE, body)
+
 
 class IssueTrackerBulkUpdater(IssueTrackerBulkCreator):
   """Class with methods for bulk tickets update in issuetracker."""
+
+  SUCCESS_TITLE = (
+      'Ticket update for your GGRC import {filename} was completed '
+      'successfully.'
+  )
+  SUCCESS_TEXT = (
+      'The assessments or the issues from the import file that required '
+      'tickets updates have been successfully updated.'
+  )
+  ERROR_TITLE = (
+      'There were some errors in updating tickets for your GGRC import '
+      '{filename}'
+  )
+  ERROR_TEXT = (
+      'There were errors that prevented updates of some tickets based on '
+      'your import file submission. The error may be due to your lack to '
+      'sufficient access to generate/update the tickets. Here is the list '
+      'of assessments or issues that were not updated.'
+  )
 
   @staticmethod
   def get_issuetracked_objects(obj_type, obj_ids):
