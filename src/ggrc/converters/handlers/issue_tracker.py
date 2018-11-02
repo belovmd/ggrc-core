@@ -8,7 +8,8 @@ from ggrc.converters.handlers import handlers
 from ggrc.models.hooks.issue_tracker import \
     issue_tracker_params_container as params_container
 from ggrc.converters import errors
-
+from ggrc.integrations.constants import DEFAULT_ISSUETRACKER_VALUES as \
+    default_values
 
 class IssueTrackerColumnHandler(handlers.ColumnHandler):
   """Column handler used for Issue Tracker related fields.
@@ -16,13 +17,6 @@ class IssueTrackerColumnHandler(handlers.ColumnHandler):
   This class provides method for Issue Tracker fields export and Issue Traceker
   default values.
   """
-  default_values = {
-      'issue_priority': 'P2',
-      'issue_severity': 'S2',
-      'issue_type': 'PROCESS',
-      'component_id': 188208,
-      'hotlist_id': 864697,
-  }
 
   def get_value(self):
     return self.row_converter.issue_tracker.get(self.key, "")
@@ -56,7 +50,7 @@ class IssueTrackerWithValidStates(IssueTrackerColumnHandler):
     if value not in self.valid_states:
       self.add_warning(errors.WRONG_VALUE_DEFAULT,
                        column_name=self.display_name)
-      return self.default_values.get(self.key)
+      return default_values.get(self.key)
     return value
 
 
@@ -69,7 +63,7 @@ class AddsColumnHandler(IssueTrackerColumnHandler):
     except ValueError:
       self.add_warning(errors.WRONG_VALUE_DEFAULT,
                        column_name=self.display_name)
-      return self.default_values.get(self.key)
+      return default_values.get(self.key)
     return value
 
 
