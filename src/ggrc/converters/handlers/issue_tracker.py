@@ -55,7 +55,7 @@ class IssueTrackerWithValidStates(IssueTrackerColumnHandler):
     return value
 
 
-class AddsColumnHandler(IssueTrackerColumnHandler):
+class IssueTrackerAddsColumnHandler(IssueTrackerColumnHandler):
   """Column handler for hotlist and components ids"""
 
   def parse_item(self):
@@ -68,7 +68,7 @@ class AddsColumnHandler(IssueTrackerColumnHandler):
     return value
 
 
-class TitleColumnHandler(IssueTrackerColumnHandler):
+class IssueTrackerTitleColumnHandler(IssueTrackerColumnHandler):
   """Column handler for Issue title for IssueTracked models"""
 
   def get_value(self):

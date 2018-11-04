@@ -122,11 +122,11 @@ _DEFAULT_COLUMN_HANDLERS_DICT = {
     "vulnerability": handlers.TextColumnHandler,
 
     # IssueTracker fields
-    "component_id": issue_tracker.AddsColumnHandler,
-    "hotlist_id": issue_tracker.AddsColumnHandler,
+    "component_id": issue_tracker.IssueTrackerAddsColumnHandler,
+    "hotlist_id": issue_tracker.IssueTrackerAddsColumnHandler,
     "issue_priority": issue_tracker.IssueTrackerWithValidStates,
     "issue_severity": issue_tracker.IssueTrackerWithValidStates,
-    "issue_title": issue_tracker.TitleColumnHandler,
+    "issue_title": issue_tracker.IssueTrackerTitleColumnHandler,
     "issue_type": issue_tracker.IssueTrackerWithValidStates,
 
     # Mapping column handlers
