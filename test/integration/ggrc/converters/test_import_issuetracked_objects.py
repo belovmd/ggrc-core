@@ -10,7 +10,8 @@ from ggrc import settings
 from ggrc.models import all_models
 from ggrc.models.hooks.issue_tracker import assessment_integration
 from ggrc.converters import errors
-from ggrc.converters.handlers import issue_tracker
+from ggrc.integrations.constants import DEFAULT_ISSUETRACKER_VALUES as \
+    default_values
 
 from integration import ggrc
 from integration.ggrc.api_helper import Api
@@ -106,6 +107,7 @@ class TestIssueTrackedImport(ggrc.TestCase):
         errors.WRONG_VALUE_DEFAULT.format(line=3, column_name="Priority"),
         errors.WRONG_VALUE_DEFAULT.format(line=3, column_name="Severity"),
         errors.WRONG_VALUE_DEFAULT.format(line=3, column_name="Issue Type"),
+        errors.WRONG_VALUE_DEFAULT.format(line=3, column_name="Issue Title"),
     }
     expected_messages = {
         "Issue": {
@@ -115,7 +117,6 @@ class TestIssueTrackedImport(ggrc.TestCase):
     self._check_csv_response(response, expected_messages)
 
     issue = all_models.Issue.query.first()
-    default_values = issue_tracker.IssueTrackerColumnHandler.default_values
     self.assertEqual(int(issue.issue_tracker["component_id"]),
                      default_values["component_id"])
     self.assertEqual(int(issue.issue_tracker["hotlist_id"]),
@@ -126,16 +127,4 @@ class TestIssueTrackedImport(ggrc.TestCase):
                      default_values["issue_severity"])
     self.assertEqual(issue.issue_tracker["issue_type"],
                      default_values["issue_type"])
-
-  def test_tracker_import_fail(self):
-    """Test import with errors."""
-    response = self.import_file("issuetracker_error.csv", safe=False)
-    expected_error = {
-        errors.MISSING_VALUE_ERROR.format(line=3, column_name="Issue Title"),
-    }
-    expected_messages = {
-        "Issue": {
-            "row_errors": expected_error,
-        }
-    }
-    self._check_csv_response(response, expected_messages)
+    self.assertEqual(issue.issue_tracker["title"], "testissue")

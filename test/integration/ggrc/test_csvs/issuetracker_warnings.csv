@@ -1,3 +1,3 @@
 Object type,"Must be unique. Can be left empty for auto generation. If updating or deleting, code is required",,List of people with 'Admin' role,,,,,
-Issue,Code*,Title*,Admin*,Component ID,Hotlist ID,Priority,Severity,Issue Type
-,ISSUE-1,testissue,user@example.com,,,,,
+Issue,Code*,Title*,Admin*,Component ID,Hotlist ID,Priority,Severity,Issue Type,Issue Title
+,ISSUE-1,testissue,user@example.com,,,,,,

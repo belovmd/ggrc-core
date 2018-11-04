@@ -11,6 +11,7 @@ from ggrc.converters import errors
 from ggrc.integrations.constants import DEFAULT_ISSUETRACKER_VALUES as \
     default_values
 
+
 class IssueTrackerColumnHandler(handlers.ColumnHandler):
   """Column handler used for Issue Tracker related fields.
 
@@ -78,11 +79,15 @@ class TitleColumnHandler(IssueTrackerColumnHandler):
     value = self.raw_value or ""
     value = self.clean_whitespaces(value)
     if not value:
-      self.add_error(errors.MISSING_VALUE_ERROR, column_name=self.display_name)
+      value = self.row_converter.obj.title or \
+          self.row_converter.attrs['title'].value
+      self.add_warning(errors.WRONG_VALUE_DEFAULT,
+                       column_name=self.display_name)
     return value
 
   @staticmethod
   def clean_whitespaces(value):
+    """Change multiply whitespaces with single one in the value string."""
     return re.sub(r'\s+', " ", value)
 
   def set_obj_attr(self):
