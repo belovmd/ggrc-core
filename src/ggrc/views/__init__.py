@@ -858,7 +858,7 @@ def generate_issues():
   return task_queue.task_scheduled_response()
 
 
-def generate_issues_from_import(request_data=None):
+def background_generate_issues(request_data=None):
   """Bulk generate linked issuetracker issues for provided objects.
 
   This function creates issuetracker tickets for all provided objects
@@ -895,10 +895,10 @@ def update_issues():
   return task_queue.task_scheduled_response()
 
 
-def update_issues_from_import(request_data=None):
+def background_update_issues(request_data=None):
   """Bulk update linked issuetracker issues for provided objects.
 
-  This endpoint update issuetracker tickets for all provided objects
+  This function update issuetracker tickets for all provided objects
   to the current state in the app. Can be called inside import
   task.
   """
