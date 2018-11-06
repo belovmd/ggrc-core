@@ -89,7 +89,7 @@ class IssueTrackerBulkCreator(object):
                 IssuetrackedObjInfo(obj, *obj_id_info[obj.id])
             )
 
-    created, errors = self.handle_issuetracker_sync(issuetracked_info)
+      created, errors = self.handle_issuetracker_sync(issuetracked_info)
 
       logger.info(
           "Synchronized issues count: %s, failed count: %s",
