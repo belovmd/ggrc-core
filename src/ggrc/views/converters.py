@@ -214,10 +214,10 @@ def make_response(data):
   return current_app.make_response((response_json, 200, headers))
 
 
-def make_import(csv_data, dry_run):
+def make_import(csv_data, dry_run, ie_job=None):
   """Make import"""
   try:
-    converter = ImportConverter(dry_run=dry_run, csv_data=csv_data)
+    converter = ImportConverter(ie_job, dry_run=dry_run, csv_data=csv_data)
     converter.import_csv_data()
     return converter.get_info()
   except Exception as e:  # pylint: disable=broad-except
@@ -278,7 +278,7 @@ def run_import_phases(ie_id, user_id, url_root):  # noqa: ignore=C901
       csv_data = read_csv_file(StringIO(ie_job.content.encode("utf-8")))
 
       if ie_job.status == "Analysis":
-        info = make_import(csv_data, True)
+        info = make_import(csv_data, True, ie_job)
         db.session.rollback()
         db.session.refresh(ie_job)
         if ie_job.status == "Stopped":
@@ -303,7 +303,7 @@ def run_import_phases(ie_id, user_id, url_root):  # noqa: ignore=C901
         db.session.commit()
 
       if ie_job.status == "In Progress":
-        info = make_import(csv_data, False)
+        info = make_import(csv_data, False, ie_job)
         ie_job.results = json.dumps(info)
         for block_info in info:
           if block_info["block_errors"] or block_info["row_errors"]:

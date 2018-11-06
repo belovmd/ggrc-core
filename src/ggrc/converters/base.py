@@ -4,7 +4,7 @@
 """Base objects for csv file converters."""
 
 from collections import defaultdict
-
+from flask import g
 from google.appengine.ext import deferred
 
 from ggrc import login
@@ -51,7 +51,9 @@ class ImportConverter(BaseConverter):
       "assessment_template",
   ]
 
-  def __init__(self, dry_run=True, csv_data=None):
+  def __init__(self, ie_job, dry_run=True, csv_data=None):
+    self.user = getattr(g, '_current_user', None)
+    self.ie_job = ie_job
     self.dry_run = dry_run
     self.csv_data = csv_data or []
     self.indexer = get_indexer()
@@ -87,7 +89,6 @@ class ImportConverter(BaseConverter):
         converter.import_csv_data()
         revision_ids.extend(converter.revision_ids)
       self.response_data.append(converter.get_info())
-
     self._start_compute_attributes_job(revision_ids)
     self.drop_cache()
 
