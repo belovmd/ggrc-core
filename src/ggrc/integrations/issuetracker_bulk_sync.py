@@ -68,15 +68,25 @@ class IssueTrackerBulkCreator(object):
     self.break_on_errs = False
     self.client = issues.Client()
 
-  def sync_issuetracker(self, objects_data, filename='', recipient=''):
+  def sync_issuetracker(self, request_data):
     """Generate IssueTracker issues in bulk.
 
     Args:
-        objects. ([object_type, object_id, hotlist_ids, component_id])
-
+        request_data: {
+            'objects': [object_type, object_id, hotlist_ids, component_id],
+            'mail_data': {user_email: email, filename: filename}
+        }
+        objects list contains objects to by synchronized,
+        mail_data contains information for email notification(file that was
+          imported name and recipient email)
     Returns:
         flask.wrappers.Response - response with result of generation.
     """
+    objects_data = request_data.get("objects")
+
+    filename = request_data.get("mail_data", {}).get("filename", '')
+    recipient = request_data.get("mail_data", {}).get("user_email", '')
+
     try:
       issuetracked_info = []
       with benchmark("Load issuetracked objects from database"):
@@ -98,7 +108,8 @@ class IssueTrackerBulkCreator(object):
     except:  # pylint: disable=bare-except
       self.send_notification(filename, recipient, failed=True)
     else:
-      self.send_notification(filename, recipient, errors=errors)
+      if created or errors:
+        self.send_notification(filename, recipient, errors=errors)
     return self.make_response(errors)
 
   @staticmethod
