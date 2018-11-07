@@ -136,7 +136,7 @@ def update_issue(cli, issue_id, params, max_attempts=5, interval=1):
   last_error = integrations_errors.Error
   for _ in range(max_attempts):
     try:
-      cli.update_issue(issue_id, params)
+      return cli.update_issue(issue_id, params)
     except integrations_errors.HttpError as error:
       last_error = error
       if error.status == 429:
