@@ -7,8 +7,10 @@ from collections import defaultdict
 from flask import g
 from google.appengine.ext import deferred
 
+from ggrc import db
 from ggrc import login
 from ggrc import settings
+from ggrc.models import all_models
 from ggrc.utils import benchmark
 from ggrc.utils import structures
 from ggrc.cache.memcache import MemCache
@@ -83,15 +85,64 @@ class ImportConverter(BaseConverter):
       yield block_converter
 
   def import_csv_data(self):
-    revision_ids = []
+    """Process import and post import jobs."""
 
+    revision_ids = []
     for converter in self.initialize_block_converters():
       if not converter.ignore:
         converter.import_csv_data()
         revision_ids.extend(converter.revision_ids)
       self.response_data.append(converter.get_info())
     self._start_compute_attributes_job(revision_ids)
+    if not self.dry_run:
+      self._start_issuetracker_update(revision_ids)
     self.drop_cache()
+
+  def _start_issuetracker_update(self, revision_ids):
+    """Create or update issuetracker tickets for all imported instances."""
+    issuetracked_models = ["Assessment", "Issue"]
+
+    # We should collect all IssueTracked models that were imported during
+    # import.
+    revisions = all_models.Revision
+    iti = all_models.IssuetrackerIssue
+    issue_tracked_objects = db.session.query(
+        revisions.resource_type,
+        revisions.resource_id,
+    ).filter(
+        revisions.resource_type.in_(issuetracked_models),
+        revisions.id.in_(revision_ids)
+    )
+
+    # We should also collect all models which issue tracker issues were changed
+    # during import
+    iti_related_objects = db.session.query(
+        iti.object_type,
+        iti.object_id,
+    ).join(
+        revisions,
+        revisions.resource_id == iti.id,
+    ).filter(
+        revisions.resource_type == "IssuetrackerIssue",
+        revisions.id.in_(revision_ids),
+        iti.object_type.in_(issuetracked_models),
+    )
+
+    objects = issue_tracked_objects.union(iti_related_objects).all()
+
+    arg_list = {
+        "objects": [{"type": obj[0], "id": int(obj[1])} for obj in objects]
+    }
+    filename = getattr(self.ie_job, "title", '')
+    user_email = getattr(self.user, "email", '')
+    mail_data = {
+        "filename": filename,
+        "user_email": user_email,
+    }
+    arg_list["mail_data"] = mail_data
+    from ggrc import views
+    views.background_update_issues(request_data=arg_list)
+    views.background_generate_issues(request_data=arg_list)
 
   def _start_compute_attributes_job(self, revision_ids):
     if revision_ids:
