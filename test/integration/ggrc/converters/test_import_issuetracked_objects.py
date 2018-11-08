@@ -3,10 +3,12 @@
 
 """Integration tests for IssueTracker updates via import cases."""
 
+from collections import OrderedDict
 
 import mock
 
 from ggrc import settings
+from ggrc import db
 from ggrc.models import all_models
 from ggrc.models.hooks.issue_tracker import assessment_integration
 from ggrc.converters import errors
@@ -97,6 +99,48 @@ class TestIssueTrackedImport(ggrc.TestCase):
     self.assertEqual(issue.issue_tracker["issue_severity"], "S3")
     self.assertEqual(issue.issue_tracker["issue_type"], "PROCESS")
     self.assertEqual(issue.issue_tracker["title"], "issue ticket title")
+
+  @mock.patch.object(settings, "ISSUE_TRACKER_ENABLED", True)
+  def test_bulk_create_from_import(self):
+    """Test data was imported and tickets were updated using bulk mechanism."""
+    response = self.import_file("issuetracker_no_warnings.csv")
+    self._check_csv_response(response, {})
+    iti = all_models.IssuetrackerIssue
+
+    assmt_iti = iti.query.filter(iti.object_type == "Assessment").one()
+    assmt_iti.enabled = True
+    assmt_iti.title = ''
+
+    issue_iti = iti.query.filter(iti.object_type == "Issue").one()
+    issue_iti.enabled = True
+    issue_iti.issue_id = 123
+
+    db.session.commit()
+
+    with mock.patch(
+        "ggrc.integrations.issues.Client.create_issue"
+    ) as create_mock:
+      with mock.patch("ggrc.notifications.common.send_email") as send_mock:
+        self.import_data(OrderedDict([
+            ("object_type", "Assessment"),
+            ("code", "ASSESSMENT-1"),
+            ("title", "Title1"),
+        ]))
+    send_mock.assert_called_once()
+    create_mock.assert_called_once()
+
+    with mock.patch(
+        "ggrc.integrations.issues.Client.update_issue"
+    ) as update_mock:
+      with mock.patch("ggrc.notifications.common.send_email") as send_mock:
+        self.import_data(OrderedDict([
+            ("object_type", "Issue"),
+            ("code", "ISSUE-1"),
+            ("priority", "P1"),
+        ]))
+
+    send_mock.assert_called_once()
+    update_mock.assert_called_once()
 
   def test_attr_import_warnings(self):
     """Test import with warnings and default values."""
