@@ -280,7 +280,7 @@ def sync_assessment_attributes():  # noqa
   updates their statuses in accordance to the corresponding Assessments
   if differ.
   """
-  logger.error(
+  logger.info(
       "Assessment synchronization start: %s",
       datetime.datetime.utcnow()
   )
@@ -289,7 +289,7 @@ def sync_assessment_attributes():  # noqa
   )
   if not assessment_issues:
     return
-  logger.error("Syncing state of %d issues.", len(assessment_issues))
+  logger.info("Syncing state of %d issues.", len(assessment_issues))
 
   processed_ids = set()
   tracker_handler = assessment_integration.AssessmentTrackerHandler()
@@ -322,5 +322,5 @@ def sync_assessment_attributes():  # noqa
         )
         continue
 
-  logger.error("Sync is done, %d issue(s) were processed.", len(processed_ids))
+  logger.info("Sync is done, %d issue(s) were processed.", len(processed_ids))
   _check_missing_ids(assessment_issues, processed_ids)
