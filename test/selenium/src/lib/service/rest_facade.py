@@ -99,7 +99,7 @@ def create_gcad_for_control():
   from lib.constants import element
   return [create_gcad(definition_type="control",
                       attribute_type=ca_type)
-          for ca_type in element.AdminWidgetCustomAttributes.ALL_CA_TYPES]
+          for ca_type in element.AdminWidgetCustomAttributes.ALL_GCA_TYPES]
 
 
 def create_issue(obj=None):
