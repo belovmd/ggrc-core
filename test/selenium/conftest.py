@@ -708,7 +708,7 @@ def gcads_for_asmt():
   """Creates GCADs of all types for Assessment."""
   return [rest_facade.create_gcad(definition_type="assessment",
                                   attribute_type=ca_type)
-          for ca_type in element.AdminWidgetCustomAttributes.ALL_CA_TYPES]
+          for ca_type in element.AdminWidgetCustomAttributes.ALL_GCA_TYPES]
 
 
 @pytest.fixture()
