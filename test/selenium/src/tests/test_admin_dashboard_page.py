@@ -80,7 +80,7 @@ class TestAdminDashboardPage(base.Test):
   @pytest.mark.smoke_tests
   @pytest.mark.parametrize(
       "ca_type",
-      AdminWidgetCustomAttributes.ALL_CA_TYPES
+      AdminWidgetCustomAttributes.ALL_GCA_TYPES
   )
   def test_add_global_ca(self, admin_dashboard, ca_type):
     """Create different types of Custom Attribute on Admin Dashboard."""
