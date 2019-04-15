@@ -14,6 +14,7 @@ from sqlalchemy import orm
 
 from ggrc import db
 from ggrc import settings
+from ggrc import utils
 from ggrc.login import is_external_app_user
 from ggrc.login import get_current_user
 from ggrc.models import all_models
@@ -376,16 +377,19 @@ def load_access_control_list(user, permissions):
           *additional_filters
       )
   )
-
-  for object_type, object_id, read, update, delete in access_control_list:
-    actions = (("read", read), ("update", update), ("delete", delete))
-    for action, allowed in actions:
-      if not allowed:
-        continue
-      permissions.setdefault(action, {})\
-          .setdefault(object_type, {})\
-          .setdefault('resources', set())\
-          .add(object_id)
+  for query_chunk in utils.generate_query_chunks(access_control_list,
+                                                 chunk_size=700000,
+                                                 order_by=acl_propagated.id):
+    for object_type, object_id, read, update, delete in query_chunk:
+      actions = (("read", read), ("update", update), ("delete", delete))
+      for action, allowed in actions:
+        if not allowed:
+          continue
+        permissions.setdefault(action, {}) \
+            .setdefault(object_type, {}) \
+            .setdefault('resources', set()) \
+            .add(object_id)
+  logger.warning("finished full acl")
 
 
 def store_results_into_memcache(permissions, cache, key):
