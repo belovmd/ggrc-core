@@ -99,12 +99,8 @@ class BlockConverter(object):
     # For import contains model name from csv file.
     # For export contains 'Model.__name__' value.
     self.class_name = class_name
-    # TODO: remove 'if' statement. Init should initialize only.
-    if self.object_class:
-      self.table_singular = self.object_class._inflector.table_singular
-      self.name = self.object_class._inflector.human_singular.title()
-    else:
-      self.name = ""
+    self.table_singular = self.object_class._inflector.table_singular or None
+    self.name = self.object_class._inflector.human_singular.title() or ""
 
   @property
   def ca_definitions_cache(self):
@@ -121,15 +117,15 @@ class BlockConverter(object):
     """
     if self._ca_definitions_cache is None:
       with benchmark("Create cache of CADs"):
-        self._create_ca_definitions_cache()
+        self._ca_definitions_cache = self._create_ca_definitions_cache()
     return self._ca_definitions_cache
 
   def _create_ca_definitions_cache(self, field_names=None):
     """Create cache for custom attribute definitions used in this block."""
     if not issubclass(self.object_class, (mixins.CustomAttributable,
                                           mixins.ExternalCustomAttributable)):
-      self._ca_definitions_cache = {}
-      return
+      return {}
+
 
     gca_prefix = reflection.AttributeInfo.CUSTOM_ATTR_PREFIX
     lca_prefix = reflection.AttributeInfo.OBJECT_CUSTOM_ATTR_PREFIX
@@ -160,8 +156,7 @@ class BlockConverter(object):
         field_names=field_names or None,
     )
 
-    self._ca_definitions_cache = {(cad.definition_id, cad.title): cad
-                                  for cad in ca_definitions}
+    return {(cad.definition_id, cad.title): cad for cad in ca_definitions}
 
   def _get_relationships(self):
     """Get all relationships for any of the object in the current block."""
@@ -561,7 +556,8 @@ class ExportBlockConverter(BlockConverter):
 
   ROW_CHUNK_SIZE = 50
 
-  def __init__(self, converter, object_class, object_ids, fields, class_name):
+  def __init__(self, converter, object_class, object_ids, fields, class_name,
+               ca_cache=None):
     # pylint: disable=too-many-arguments
     super(ExportBlockConverter, self).__init__(
         converter,
@@ -571,7 +567,10 @@ class ExportBlockConverter(BlockConverter):
         operation="export"
     )
 
-    self._create_ca_definitions_cache(field_names=fields)
+    self._ca_definitions_cache = (
+        ca_cache or self._create_ca_definitions_cache(field_names=fields)
+    )
+
     self.object_headers = import_helper.get_object_column_definitions(
         self.object_class, ca_cache=self._ca_cache,
         for_template=self.is_template)
@@ -584,6 +583,8 @@ class ExportBlockConverter(BlockConverter):
   def _ca_cache(self):
     """Get custom attributes definitions in ca_cache-compatible format."""
     object_name = utils.underscore_from_camelcase(self.object_class.__name__)
+    if object_name in self.ca_definitions_cache:
+      return self.ca_definitions_cache
     return {object_name: self.ca_definitions_cache.values()}
 
   @property

@@ -7,8 +7,8 @@
 # pylint: disable=too-many-public-methods
 
 import datetime
-from ddt import data, ddt, unpack
-from mock import mock
+import ddt
+import mock
 
 from ggrc import db
 from ggrc.models import all_models
@@ -27,7 +27,7 @@ def dummy_gdrive_response(*args, **kwargs):
           'id': '12345'}
 
 
-@ddt
+@ddt.ddt
 class TestExport(query_helper.WithQueryApi, TestCase):
   """Test imports for assessment objects."""
 
@@ -105,7 +105,7 @@ class TestExport(query_helper.WithQueryApi, TestCase):
         fields=[
             'title',
             '__object_custom__:test lcad1',
-            '__object_custom__:test lcad12',
+            '__object_custom__:test lcad2',
             '__custom__:test gca',
         ]
     )
@@ -142,28 +142,28 @@ class TestExport(query_helper.WithQueryApi, TestCase):
     db.session.commit()
     self.assert_slugs("comment", self.comment.description, [])
 
-  @data("created_at", "Created Date", "created Date")
+  @ddt.data("created_at", "Created Date", "created Date")
   def test_filter_by_created_at(self, alias):
     """Test filter by created at"""
     self.assert_filter_by_datetime(alias,
                                    self.assessment.created_at,
                                    [self.assessment.slug])
 
-  @data("updated_at", "Last Updated Date", "Last Updated Date")
+  @ddt.data("updated_at", "Last Updated Date", "Last Updated Date")
   def test_filter_by_updated_at(self, alias):
     """Test filter by updated at"""
     self.assert_filter_by_datetime(alias,
                                    self.assessment.updated_at,
                                    [self.assessment.slug])
 
-  @data("finished_date", "Finished Date", "finished date")
+  @ddt.data("finished_date", "Finished Date", "finished date")
   def test_filter_by_finished_date(self, alias):
     """Test filter by finished date"""
     self.assert_filter_by_datetime(alias,
                                    self.assessment.finished_date,
                                    [self.assessment.slug])
 
-  @data("verified_date", "Verified Date", "verified date")
+  @ddt.data("verified_date", "Verified Date", "verified date")
   def test_filter_by_verified_date(self, alias):
     """Test filter by verified date"""
     self.assert_filter_by_datetime(alias,
@@ -281,14 +281,14 @@ class TestExport(query_helper.WithQueryApi, TestCase):
         [self.assessment.slug],
     )
 
-  @data(
+  @ddt.data(
       # (offset, verified_date, filter_date)
       (180, datetime.datetime(2017, 1, 1, 22, 30), "2017-01-02"),
       (-180, datetime.datetime(2017, 1, 2, 1, 30), "2017-01-01"),
       (0, datetime.datetime(2017, 1, 1, 1, 30), "2017-01-01"),
       (None, datetime.datetime(2017, 1, 1, 1, 30), "2017-01-01"),
   )
-  @unpack
+  @ddt.unpack
   def test_filter_by_tz_depend(self, offset, verified_date, filter_value):
     """Test filter by verified date with timezone info"""
     user_headers = {}
@@ -302,7 +302,7 @@ class TestExport(query_helper.WithQueryApi, TestCase):
 
   @mock.patch('ggrc.gdrive.file_actions.process_gdrive_file',
               dummy_gdrive_response)
-  def test_evidense_export(self):
+  def test_evidence_export(self):
     """Test evidence fields of the assessments"""
     with factories.single_commit():
       evid_file = factories.EvidenceFactory(

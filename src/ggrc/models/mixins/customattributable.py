@@ -489,14 +489,14 @@ class CustomAttributable(CustomAttributableBase):
     Avoid getting all possible attribute definitions if possible.
 
     Args:
-      field_names (iterable): Iterable containing names of defintions to get.
+      field_names (iterable): Iterable containing names of definitions to get.
         If None, all definitions will be returned. Defaults to None.
       attributable_ids (iterable): Iterable containing IDs of instances whose
         definitions to get. If None, definitions of all objects will be
         returned. Defaults to None.
 
     Returns:
-      Iterable of custom attribute defintions.
+      Iterable of custom attribute definitions.
     """
     from ggrc.models.custom_attribute_definition import \
         CustomAttributeDefinition as cad

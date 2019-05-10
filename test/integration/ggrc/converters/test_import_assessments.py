@@ -18,8 +18,8 @@ from ggrc.models import all_models
 from ggrc.access_control.role import get_custom_roles_for
 from ggrc.converters import errors
 
+from integration.ggrc import generator
 from integration.ggrc import TestCase
-from integration.ggrc.generator import ObjectGenerator
 from integration.ggrc.models import factories
 
 
@@ -1066,7 +1066,7 @@ class TestAssessmentExport(TestCase):
     """ Set up for Assessment test cases """
     super(TestAssessmentExport, self).setUp()
     self.client.get("/login")
-    self.headers = ObjectGenerator.get_header()
+    self.headers = generator.ObjectGenerator.get_header()
 
   def test_simple_export(self):
     """ Test full assessment export with no warnings"""
@@ -1082,6 +1082,7 @@ class TestAssessmentExport(TestCase):
     # check that Assessment 1 -> description utf8 exported properly
     self.assertIn(u"\u5555", response.data.decode("utf8"))
 
+  # pylint: disable=invalid-name
   def assertColumnExportedValue(self, value, instance, column):
     """ Assertion checks is value equal to exported instance column value."""
     data = [{
@@ -1099,8 +1100,9 @@ class TestAssessmentExport(TestCase):
     instance_dict = self.export_parsed_csv(data)[instance.type][0]
     self.assertEqual(value, instance_dict[column])
 
-  def test_export_assesments_without_map_control(self):
-    """Test export assesment without related control instance"""
+  # pylint: disable=invalid-name
+  def test_export_assessments_without_map_control(self):
+    """Test export assessment without related control instance"""
     audit = factories.AuditFactory()
     assessment = factories.AssessmentFactory(audit=audit)
     factories.RelationshipFactory(source=audit, destination=assessment)
@@ -1122,8 +1124,8 @@ class TestAssessmentExport(TestCase):
                                    "map:control versions")
 
   @ddt.data(True, False)
-  def test_export_assesments_map_control(self, with_map):
-    """Test export assesment with and without related control instance"""
+  def test_export_map_control(self, with_map):
+    """Test export assessment with and without related control instance"""
     with factories.single_commit():
       audit = factories.AuditFactory()
       assessment = factories.AssessmentFactory(audit=audit)
@@ -1148,11 +1150,11 @@ class TestAssessmentExport(TestCase):
       val = control.slug
     else:
       val = ""
-    self.assertColumnExportedValue(val, assessment,
-                                   "map:control versions")
+    self.assertColumnExportedValue(val, assessment, "map:control versions")
 
-  def test_export_assesments_with_map_control_mirror_relation(self):
-    """Test export assesment with related control instance
+  # pylint: disable=invalid-name
+  def test_export_with_map_control_mirror_relation(self):
+    """Test export assessment with related control instance
 
     relation assessment -> snapshot
     """
@@ -1178,6 +1180,7 @@ class TestAssessmentExport(TestCase):
     self.assertColumnExportedValue(control.slug, assessment,
                                    "map:control versions")
 
+  # pylint: disable=invalid-name
   def test_export_assessments_with_filters_and_conflicting_ca_names(self):
     """Test exporting assessments with conflicting custom attribute names."""
     self.import_file("assessment_template_no_warnings.csv")

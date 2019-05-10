@@ -430,6 +430,7 @@ class AttributeInfo(object):
       custom_attributes = ca_cache.get(object_name, [])
     else:
       custom_attributes = object_class.get_custom_attribute_definitions(fields)
+
     for attr in custom_attributes:
       description = attr.helptext or u""
       if (attr.attribute_type == attr.ValidTypes.DROPDOWN and
@@ -543,7 +544,6 @@ class AttributeInfo(object):
       definitions[key] = definition
 
     definitions.update(cls.get_acl_definitions(object_class))
-
     if object_class.__name__ not in EXCLUDE_CUSTOM_ATTRIBUTES:
       definitions.update(cls.get_custom_attr_definitions(
           object_class, ca_cache=ca_cache, fields=ca_fields

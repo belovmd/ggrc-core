@@ -47,6 +47,7 @@ from ggrc.query import builder
 from ggrc.query import exceptions as query_exceptions
 from ggrc.utils import benchmark
 from ggrc.utils import errors as app_errors
+from ggrc.utils import objects_cache
 
 
 EXPORTABLES_MAP = {exportable.__name__: exportable for exportable
@@ -149,17 +150,32 @@ def handle_export_request():
 
 def get_csv_template(objects):
   """Make csv template"""
+  ca_cache = {}
   for object_data in objects:
     class_name = object_data["object_name"]
+    template_ids = tuple(object_data.get("template_ids", []))
+
     object_class = EXPORTABLES_MAP[class_name]
     ignore_fields = IGNORE_FIELD_IN_TEMPLATE.get(class_name, [])
+
+    class_name = utils.underscore_from_camelcase(class_name)
+    ca_cache[class_name] = (
+        objects_cache.related_cads_for_object_type(
+            class_name,
+            template_ids
+        )
+    )
+
     filtered_fields = [
         field for field in
-        import_helper.get_object_column_definitions(object_class)
+        import_helper.get_object_column_definitions(
+            object_class,
+            ca_cache=ca_cache,
+        )
         if field not in ignore_fields
     ]
     object_data["fields"] = filtered_fields
-  return make_export(objects)
+  return make_export(objects, ca_cache=ca_cache)
 
 
 @handle_export_request_error
@@ -173,7 +189,7 @@ def handle_export_csv_template_request():
   return export_file(export_to, filename, csv_string)
 
 
-def make_export(objects, exportable_objects=None, ie_job=None):
+def make_export(objects, exportable_objects=None, ie_job=None, ca_cache=None):
   """Make export"""
   query_helper = builder.QueryHelper(objects)
   ids_by_type = query_helper.get_ids()
@@ -181,6 +197,7 @@ def make_export(objects, exportable_objects=None, ie_job=None):
       ids_by_type=ids_by_type,
       exportable_queries=exportable_objects,
       ie_job=ie_job,
+      ca_cache=ca_cache
   )
   csv_data = converter.export_csv_data()
   object_names = "_".join(converter.get_object_names())

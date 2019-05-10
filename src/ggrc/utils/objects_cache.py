@@ -108,3 +108,32 @@ def related_snapshot_slugs_cache(obj_class, obj_ids):
       snapshots[object_id][snapshot_obj_type].add(snapshot_obj_slug)
 
     return snapshots
+
+
+# pylint: disable=invalid-name
+def related_cads_for_object_type(class_name, template_ids=()):
+  """
+    Collect GCADs and LCAs those related to object
+    with possible additional filtering by assessment_templates ids.
+
+    Args:
+        class_name: string - underscored class name
+        template_ids: tuple of ids of assessment_templates.
+
+    Returns:
+        List of CADs
+    """
+  with benchmark("Create cache of CADs related to Assessment"):
+    cad = all_models.CustomAttributeDefinition
+    cads = list(cad.query.filter(
+        cad.definition_type == class_name,
+        cad.definition_id.is_(None),
+    ))
+
+    if template_ids:
+      cads.extend(cad.query.filter(
+          cad.definition_type == 'assessment_template',
+          cad.definition_id.in_(template_ids),
+      ))
+
+    return cads

@@ -187,12 +187,14 @@ class ExportConverter(BaseConverter):
   blocks and columns are handled in the correct order.
   """
 
-  def __init__(self, ids_by_type, exportable_queries=None, ie_job=None):
+  def __init__(self, ids_by_type, exportable_queries=None, ie_job=None,
+               ca_cache=None):
     super(ExportConverter, self).__init__(ie_job)
     self.dry_run = True  # TODO: fix ColumnHandler to not use it for exports
     self.block_converters = []
     self.ids_by_type = ids_by_type
     self.exportable_queries = exportable_queries or []
+    self._ca_cache = ca_cache
 
   def get_object_names(self):
     return [c.name for c in self.block_converters]
@@ -227,6 +229,7 @@ class ExportConverter(BaseConverter):
             fields=fields,
             object_ids=object_ids,
             class_name=class_name,
+            ca_cache=self._ca_cache
         )
         self.block_converters.append(block_converter)
 
