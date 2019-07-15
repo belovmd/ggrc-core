@@ -58,10 +58,7 @@ export default canComponent.extend({
       const filter = parseFilterJson(search.filters);
       const model = BusinessModels[search.object_type];
       const selectedSavedSearch = {
-        filterItems: filter.filterItems,
-        mappingItems: filter.mappingItems,
-        statusItem: filter.statusItem,
-        parentItems: filter.parentItems,
+        ...filter,
         id: search.id,
       };
 
@@ -102,7 +99,7 @@ export default canComponent.extend({
     removeSearch(search, event) {
       event.stopPropagation();
 
-      search.destroy().then(() => {
+      return search.destroy().done(() => {
         const paging = this.attr('searchesPaging');
 
         const needToGoToPrevPage = (
@@ -135,7 +132,7 @@ export default canComponent.extend({
     inserted() {
       this.viewModel.loadSavedSearches();
     },
-    '{pubSub} savedSearchCreated'(pubsub, ev) {
+    '{pubSub} savedSearchCreated'(pubSub, ev) {
       this.viewModel.loadSavedSearches().then(() => {
         this.viewModel.selectSearch(ev.search);
       });
