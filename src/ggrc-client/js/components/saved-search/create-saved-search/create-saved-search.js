@@ -26,18 +26,16 @@ export default canComponent.extend({
     searchName: '',
     objectType: '',
     isDisabled: false,
+    getSerializedAttribute(attrName) {
+      return this.attr(attrName) && this.attr(attrName).serialize();
+    },
     getFilters() {
-      const filterItems = this.attr('filterItems') &&
-        this.attr('filterItems').serialize();
-      const mappingItems = this.attr('mappingItems') &&
-        this.attr('mappingItems').serialize();
-      const statusItem = this.attr('statusItem') &&
-        this.attr('statusItem').serialize();
+      const filterItems = this.getSerializedAttribute('filterItems');
+      const mappingItems = this.getSerializedAttribute('mappingItems');
+      const statusItem = this.getSerializedAttribute('statusItem');
+      const parentInstance = this.getSerializedAttribute('parentInstance');
 
-      let parentItems = this.attr('parentItems') &&
-        this.attr('parentItems').serialize();
-      let parentInstance = this.attr('parentInstance') &&
-        this.attr('parentInstance').serialize();
+      let parentItems = this.getSerializedAttribute('parentItems');
 
       /*
       "parentInstance" - current parent instance (when sitting on some object page).
