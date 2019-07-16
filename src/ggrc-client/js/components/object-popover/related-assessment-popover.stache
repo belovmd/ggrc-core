@@ -10,10 +10,13 @@
             <div class="fields-wrapper flex-box flex-row">
                 <show-more items:from="selectedAssessmentFields">
                     <div class="field-wrapper flex-size-1 custom-attribute-{{type}}">
-                        <form-validation-icon validation:from="validation"></form-validation-icon>
+                        <form-validation-icon validation:from="validation" value:from="value"></form-validation-icon>
                         <div class="field__title form-field__title">
                             <label class="field__title-text custom-attribute-{{type}}" for="form-field-{{id}}">
                               {{title}}
+                              {{#if validation.mandatory}}
+                                <i class="fa fa-asterisk field__mandatory"></i>
+                              {{/if}}
                               {{#if helptext}}
                                 <i class="fa fa-question-circle field__title-helper-text" rel="tooltip" title="{{helptext}}"></i>
                               {{/if}}
