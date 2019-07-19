@@ -895,11 +895,11 @@ const processNotExistedSearch = (viewModel) => {
   viewModel.removeAdvancedFilters();
 };
 
-const loadSavedSearch = (viewModel) => {
+export const loadSavedSearch = (viewModel) => {
   const searchId = viewModel.attr('router.saved_search');
   viewModel.attr('loading', true);
 
-  SavedSearch.findOne({id: searchId}).then((response) => {
+  return SavedSearch.findOne({id: searchId}).then((response) => {
     viewModel.attr('loading', false);
     const savedSearch = response.SavedSearch;
 

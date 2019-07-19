@@ -17,10 +17,12 @@ import * as NotifierUtils from '../../../plugins/utils/notifiers-utils';
 import * as MegaObjectUtils from '../../../plugins/utils/mega-object-utils';
 import tracker from '../../../tracker';
 import {getComponentVM} from '../../../../js_specs/spec_helpers';
-import Component from '../tree-widget-container';
+import Component, * as TreeWidgetFunctions from '../tree-widget-container';
 import Relationship from '../../../models/service-models/relationship';
 import exportMessage from '../templates/export-message.stache';
 import QueryParser from '../../../generated/ggrc_filter_query_parser';
+import SavedSearch from '../../../models/service-models/saved-search';
+import * as CurrentPageUtils from '../../../plugins/utils/current-page-utils';
 import router from '../../../router';
 import Cacheable from '../../../models/cacheable';
 import Program from '../../../models/business-models/program';
@@ -229,6 +231,67 @@ describe('tree-widget-container component', function () {
       vm.openAdvancedFilter();
 
       expect(vm.attr('advancedSearch.open')).toBe(true);
+    });
+
+    it('should add "parentInstance". isObjectContextPage is TRUE' +
+    'and "parentInstance" is empty', () => {
+      const parentInstance = {id: 1, type: 'Audit'};
+      spyOn(CurrentPageUtils, 'isObjectContextPage').and.returnValue(true);
+      spyOn(AdvancedSearch.create, 'parentInstance')
+        .and.returnValue({type: 'parentInstance', value: parentInstance});
+
+      vm.attr('advancedSearch.parentInstance', null);
+
+      vm.openAdvancedFilter();
+
+      expect(AdvancedSearch.create.parentInstance).toHaveBeenCalled();
+      expect(vm.attr('advancedSearch.parentInstance.value').serialize())
+        .toEqual(parentInstance);
+    });
+
+    it('should NOT add "parentInstance" because it already set', () => {
+      spyOn(CurrentPageUtils, 'isObjectContextPage').and.returnValue(true);
+      spyOn(AdvancedSearch.create, 'parentInstance');
+
+      vm.attr('advancedSearch.parentInstance', {id: 1});
+
+      vm.openAdvancedFilter();
+
+      expect(AdvancedSearch.create.parentInstance).not.toHaveBeenCalled();
+      expect(vm.attr('advancedSearch.parentInstance')).not.toBeNull();
+    });
+
+    it('should NOT add "parentInstance" because isObjectContextPage is FALSE',
+      () => {
+        spyOn(CurrentPageUtils, 'isObjectContextPage').and.returnValue(false);
+        spyOn(AdvancedSearch.create, 'parentInstance');
+
+        vm.attr('advancedSearch.parentInstance', null);
+
+        vm.openAdvancedFilter();
+
+        expect(AdvancedSearch.create.parentInstance).not.toHaveBeenCalled();
+        expect(vm.attr('advancedSearch.parentInstance')).toBeNull();
+      }
+    );
+
+    it('should filter parentItems and exclude parentInstance', () => {
+      const parentInstance = {id: 1, type: 'Audit'};
+      spyOn(CurrentPageUtils, 'isObjectContextPage').and.returnValue(true);
+      spyOn(AdvancedSearch.create, 'parentInstance')
+        .and.returnValue({type: 'parentInstance', value: parentInstance});
+
+      vm.attr('advancedSearch.parentInstance', null);
+      vm.attr('advancedSearch.appliedParentItems', [
+        {value: {id: 1, type: 'Audit'}},
+        {value: {id: 2, type: 'Audit'}},
+        {value: {id: 1, type: 'Program'}},
+      ]);
+
+      vm.openAdvancedFilter();
+      expect(vm.attr('advancedSearch.parentItems').length).toBe(2);
+      expect(vm.attr('advancedSearch.parentInstance.value').serialize())
+        .toEqual(parentInstance);
     });
   });
 
@@ -842,4 +905,129 @@ describe('tree-widget-container component', function () {
       expect(columns).toEqual(expectedOutput);
     });
   });
+});
+
+describe('"loadSavedSearch" function', () => {
+  const viewModel = new canMap({
+    router: {
+      saved_search: 1,
+    },
+    loading: false,
+    modelName: 'Control',
+    advancedSearch: {},
+    removeAdvancedFilters: () => {},
+    applyAdvancedFilters: () => {},
+  });
+
+  let treeFunction;
+
+  beforeAll(() => {
+    treeFunction = TreeWidgetFunctions.loadSavedSearch;
+  });
+
+  it('should set "loading" flag to true while loading', (done) => {
+    let dfd = $.Deferred();
+
+    spyOn(SavedSearch, 'findOne').and.returnValue(dfd);
+
+    let loadDfd = treeFunction(viewModel);
+    expect(viewModel.attr('loading')).toBeTruthy();
+
+    loadDfd.then(() => {
+      expect(viewModel.attr('loading')).toBeFalsy();
+      done();
+    });
+
+    dfd.resolve({});
+  });
+
+  it('should call "removeAdvancedFilters" when search response is null',
+    (done) => {
+      let dfd = $.Deferred();
+
+      spyOn(SavedSearch, 'findOne').and.returnValue(dfd);
+      spyOn(viewModel, 'removeAdvancedFilters');
+
+      treeFunction(viewModel).then(() => {
+        expect(viewModel.removeAdvancedFilters).toHaveBeenCalled();
+        done();
+      });
+
+      dfd.resolve({SavedSearch: null});
+    }
+  );
+
+  it('should call "removeAdvancedFilters" when search is NOT AdvancedSearch',
+    (done) => {
+      let dfd = $.Deferred();
+
+      spyOn(SavedSearch, 'findOne').and.returnValue(dfd);
+      spyOn(viewModel, 'removeAdvancedFilters');
+
+      treeFunction(viewModel).then(() => {
+        expect(viewModel.removeAdvancedFilters).toHaveBeenCalled();
+        done();
+      });
+
+      dfd.resolve({SavedSearch: {
+        search_type: 'GlobalSearch',
+        object_type: 'Control',
+      }});
+    }
+  );
+
+  it('should call "removeAdvancedFilters" when search.object_type' +
+  ' is NOT equal to viewModel.modelName',
+  (done) => {
+    let dfd = $.Deferred();
+
+    spyOn(SavedSearch, 'findOne').and.returnValue(dfd);
+    spyOn(viewModel, 'removeAdvancedFilters');
+
+    treeFunction(viewModel).then(() => {
+      expect(viewModel.removeAdvancedFilters).toHaveBeenCalled();
+      done();
+    });
+
+    dfd.resolve({SavedSearch: {
+      search_type: 'AdvancedSearch',
+      object_type: 'Regulation',
+    }});
+  });
+
+  it('should call "removeAdvancedFilters" when search loading was failed',
+    (done) => {
+      let dfd = $.Deferred();
+
+      spyOn(SavedSearch, 'findOne').and.returnValue(dfd);
+      spyOn(viewModel, 'removeAdvancedFilters');
+
+      treeFunction(viewModel).fail(() => {
+        expect(viewModel.removeAdvancedFilters).toHaveBeenCalled();
+        done();
+      });
+
+      dfd.reject();
+    }
+  );
+
+  it('should call "applyAdvancedFilters" when search appropriate to viewModel',
+    (done) => {
+      let dfd = $.Deferred();
+
+      spyOn(SavedSearch, 'findOne').and.returnValue(dfd);
+      spyOn(viewModel, 'applyAdvancedFilters');
+      spyOn(AdvancedSearch, 'parseFilterJson');
+
+      treeFunction(viewModel).then(() => {
+        expect(viewModel.applyAdvancedFilters).toHaveBeenCalled();
+        done();
+      });
+
+      dfd.resolve({SavedSearch: {
+        search_type: 'AdvancedSearch',
+        object_type: 'Control',
+      }});
+    }
+  );
 });
