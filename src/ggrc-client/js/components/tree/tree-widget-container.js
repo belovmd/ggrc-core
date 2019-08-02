@@ -9,7 +9,6 @@ import loFindIndex from 'lodash/findIndex';
 import loSortBy from 'lodash/sortBy';
 import makeArray from 'can-util/js/make-array/make-array';
 import canStache from 'can-stache';
-import canList from 'can-list';
 import canMap from 'can-map';
 import canComponent from 'can-component';
 import './tree-header-selector';
@@ -24,24 +23,17 @@ import './tree-view';
 import './tree-item';
 import './tree-actions';
 import './tree-header';
-import './tree-filter-input';
-import './tree-status-filter';
 import './tree-item-status-for-workflow';
 import './tree-no-results';
 import './tree-field-wrapper';
 import './tree-field';
 import './tree-people-with-role-list-field';
-import '../advanced-search/advanced-search-filter-container';
-import '../advanced-search/advanced-search-mapping-container';
 import '../bulk-update-button/bulk-update-button';
 import '../assessment-template-clone-button/assessment-template-clone-button';
 import '../create-document-button/create-document-button';
-import '../dropdown/multiselect-dropdown';
-import '../dropdown/dropdown-wrapper';
 import '../assessment/assessment-generator-button';
 import '../last-comment/last-comment';
-import '../saved-search/saved-search-list/saved-search-list';
-import '../saved-search/create-saved-search/create-saved-search';
+import '../tree-view-filter/tree-view-filter';
 
 import template from './templates/tree-widget-container.stache';
 import * as StateUtils from '../../plugins/utils/state-utils';
@@ -52,7 +44,6 @@ import {
 import * as TreeViewUtils from '../../plugins/utils/tree-view-utils';
 import {
   initMappedInstances,
-  isObjectContextPage,
   isAllObjects,
   isMyWork,
 } from '../../plugins/utils/current-page-utils';
@@ -63,7 +54,6 @@ import {
   getWidgetModels,
 } from '../../plugins/utils/widgets-utils';
 import {getMegaObjectRelation} from '../../plugins/utils/mega-object-utils';
-import * as AdvancedSearch from '../../plugins/utils/advanced-search-utils';
 import Pagination from '../base-objects/pagination';
 import tracker from '../../tracker';
 import router from '../../router';
@@ -72,71 +62,16 @@ import Cacheable from '../../models/cacheable';
 import Relationship from '../../models/service-models/relationship';
 import * as businessModels from '../../models/business-models';
 import exportMessage from './templates/export-message.stache';
-import QueryParser from '../../generated/ggrc_filter_query_parser';
 import {isSnapshotType} from '../../plugins/utils/snapshot-utils';
-import SavedSearch from '../../models/service-models/saved-search';
 import pubSub from '../../pub-sub';
+import {concatFilters} from '../../plugins/utils/tree-view-utils';
 
 let viewModel = canMap.extend({
   define: {
-    /**
-     * Condition that adds into all request to server-side Query API
-     */
-    additionalFilter: {
-      type: String,
-      value: '',
-      get: function () {
-        return this.attr('options').additional_filter;
-      },
-    },
-    /**
-     *
-     */
-    currentFilter: {
-      type: String,
-      get: function () {
-        let filters = makeArray(this.attr('filters'));
-        let additionalFilter = this.attr('additionalFilter');
-
-        if (this.attr('advancedSearch.filter')) {
-          return this.attr('advancedSearch.filter');
-        }
-
-        if (additionalFilter) {
-          additionalFilter = QueryParser.parse(additionalFilter);
-        }
-
-        return filters.filter(function (options) {
-          return options.query;
-        }).reduce(this._concatFilters, additionalFilter);
-      },
-    },
-    isSavedSearchShown: {
-      get() {
-        if (isMyWork()) {
-          // do NOT show Advanced saved search list on Dashboard page
-          return false;
-        }
-
-        if (isAllObjects() &&
-          this.model.model_plural === 'CycleTaskGroupObjectTasks') {
-          // do NOT show Advanced saved search list on AllOjbects page (Tasks tab)
-          return false;
-        }
-
-        return true;
-      },
-    },
     modelName: {
       type: String,
       get: function () {
         return this.attr('model').model_singular;
-      },
-    },
-    statusFilterVisible: {
-      type: Boolean,
-      get: function () {
-        return StateUtils.hasFilter(this.attr('modelName'));
       },
     },
     statusTooltipVisible: {
@@ -182,16 +117,6 @@ let viewModel = canMap.extend({
         return newValue;
       },
     },
-    selectedSavedSearchId: {
-      get() {
-        if (this.attr('filterIsDirty')) {
-          return;
-        }
-
-        return this.attr('advancedSearch.selectedSavedSearch.id') ||
-          this.attr('appliedSavedSearch.id');
-      },
-    },
   },
   sortingInfo: {
     sortDirection: null,
@@ -221,10 +146,10 @@ let viewModel = canMap.extend({
     selected: [],
     available: [],
   },
-  filters: [],
   canOpenInfoPin: true,
-  savedSearchPermalink: '',
   pubSub,
+  advancedSearch: null,
+  currentFilter: '',
   loadItems: function () {
     let modelName = this.attr('modelName');
     let pageInfo = this.attr('pageInfo');
@@ -344,30 +269,7 @@ let viewModel = canMap.extend({
       return options.query &&
         options.depth &&
         options.filterDeepLimit > deepLevel;
-    }).reduce(this._concatFilters, null);
-  },
-  registerFilter: function (option) {
-    this.attr('filters').push(option);
-  },
-  /**
-   * Concatenation active filters.
-   *
-   * @param {String} filter - Parsed filter string
-   * @param {Object} options - Filter parameters
-   * @return {string} - Result of concatenation filters.
-   * @private
-   */
-  _concatFilters: function (filter, options) {
-    if (filter) {
-      filter = QueryParser.joinQueries(
-        filter,
-        options.query.attr(),
-        'AND');
-    } else if (options.query) {
-      filter = options.query;
-    }
-
-    return filter;
+    }).reduce(concatFilters, null);
   },
   _widgetHidden: function () {
     this._triggerListeners(true);
@@ -538,107 +440,6 @@ let viewModel = canMap.extend({
       }
     };
   })(),
-
-  advancedSearch: {
-    open: false,
-    filter: null,
-    request: canList(),
-    filterItems: canList(),
-    appliedFilterItems: canList(),
-    mappingItems: canList(),
-    appliedMappingItems: canList(),
-    parentItems: canList(),
-    appliedParentItems: canList(),
-    parentInstance: null,
-  },
-  openAdvancedFilter: function () {
-    // serialize "appliedFilterItems" before set to prevent changing of
-    // "appliedFilterItems" object by changing of "filterItems" object.
-    // Without "serialization" we copy reference of "appliedFilterItems" to "filterItems".
-    this.attr('advancedSearch.filterItems',
-      this.attr('advancedSearch.appliedFilterItems').serialize());
-
-    this.attr('advancedSearch.mappingItems',
-      this.attr('advancedSearch.appliedMappingItems').serialize());
-
-    this.attr('advancedSearch.parentItems',
-      this.attr('advancedSearch.appliedParentItems').serialize());
-
-    if (isObjectContextPage() && !this.attr('advancedSearch.parentInstance')) {
-      this.attr('advancedSearch.parentInstance',
-        AdvancedSearch.create.parentInstance(this.attr('parent_instance')));
-
-      // remove duplicates
-      const parentItems = filterParentItems(
-        this.attr('advancedSearch.parentInstance'),
-        this.attr('advancedSearch.parentItems'));
-
-      this.attr('advancedSearch.parentItems', parentItems);
-    }
-
-    this.attr('advancedSearch.open', true);
-    this.attr('filterIsDirty', false);
-  },
-  clearAppliedSavedSearch() {
-    this.attr('advancedSearch.selectedSavedSearch', null);
-    this.attr('savedSearchPermalink', null);
-    this.attr('appliedSavedSearch', null);
-  },
-  applySavedSearch(selectedSavedSearch) {
-    if (!selectedSavedSearch || this.attr('filterIsDirty')) {
-      this.clearAppliedSavedSearch();
-      return;
-    }
-
-    const widgetId = this.attr('options.widgetId');
-    const permalink = AdvancedSearch
-      .buildSearchPermalink(selectedSavedSearch.id, widgetId);
-
-    this.attr('savedSearchPermalink', permalink);
-    this.attr('appliedSavedSearch', selectedSavedSearch.serialize());
-  },
-  applyAdvancedFilters: function () {
-    const filters = this.attr('advancedSearch.filterItems').serialize();
-    const mappings = this.attr('advancedSearch.mappingItems').serialize();
-    const parents = this.attr('advancedSearch.parentItems').serialize();
-    let request = canList();
-
-    this.attr('advancedSearch.appliedFilterItems', filters);
-    this.attr('advancedSearch.appliedMappingItems', mappings);
-    this.attr('advancedSearch.appliedParentItems', parents);
-
-    const builtFilters = AdvancedSearch.buildFilter(filters, request);
-    const builtMappings = AdvancedSearch.buildFilter(mappings, request);
-    const builtParents = AdvancedSearch.buildFilter(parents, request);
-    let advancedFilters =
-      QueryParser.joinQueries(builtFilters, builtMappings);
-    advancedFilters = QueryParser.joinQueries(advancedFilters, builtParents);
-
-    this.attr('advancedSearch.request', request);
-
-    this.attr('advancedSearch.filter', advancedFilters);
-
-    this.attr('advancedSearch.open', false);
-
-    this.applySavedSearch(
-      this.attr('advancedSearch.selectedSavedSearch')
-    );
-    this.onFilter();
-  },
-  removeAdvancedFilters: function () {
-    this.attr('advancedSearch.appliedFilterItems', canList());
-    this.attr('advancedSearch.appliedMappingItems', canList());
-    this.attr('advancedSearch.request', canList());
-    this.attr('advancedSearch.filter', null);
-    this.attr('advancedSearch.open', false);
-    this.clearAppliedSavedSearch();
-    this.onFilter();
-  },
-  resetAdvancedFilters: function () {
-    this.attr('advancedSearch.filterItems', canList());
-    this.attr('advancedSearch.mappingItems', canList());
-    this.attr('advancedSearch.parentItems', canList());
-  },
   closeInfoPane: function () {
     $('.pin-content')
       .control()
@@ -760,9 +561,6 @@ let viewModel = canMap.extend({
         pinControl.setLoadingIndicator(componentSelector, false);
       });
   },
-  searchModalClosed() {
-    this.attr('advancedSearch.selectedSavedSearch', null);
-  },
 });
 
 /**
@@ -778,18 +576,6 @@ export default canComponent.extend({
     this.viewModel.setSortingConfiguration();
   },
   events: {
-    '{viewModel.advancedSearch} selectedSavedSearch'() {
-      // applied saved search filter. Current filter is NOT dirty
-      this.viewModel.attr('filterIsDirty', false);
-    },
-    '{viewModel.advancedSearch.filterItems} change'() {
-      // filterItems changed. Current filter is dirty
-      this.viewModel.attr('filterIsDirty', true);
-    },
-    '{viewModel.advancedSearch.mappingItems} change'() {
-      // mappingItems changed. Current filter is dirty
-      this.viewModel.attr('filterIsDirty', true);
-    },
     '{viewModel.pageInfo} current': function () {
       if (!this.viewModel.attr('loading')) {
         this.viewModel.refresh();
@@ -850,32 +636,9 @@ export default canComponent.extend({
       this.element.closest('.widget')
         .on('widget_shown', viewModel._widgetShown.bind(viewModel));
       viewModel._triggerListeners();
-
-      if (isLoadSavedSearch(this.viewModel)) {
-        loadSavedSearch(this.viewModel);
-      } else {
-        viewModel.loadItems();
-      }
     },
     '{viewModel.parent_instance} displayTree'([scope], {destinationType}) {
       this.viewModel.refresh(destinationType);
-    },
-    '{viewModel.router} saved_search'() {
-      if (isLoadSavedSearch(this.viewModel)) {
-        loadSavedSearch(this.viewModel);
-      }
-    },
-    '{pubSub} savedSearchSelected'(pubSub, ev) {
-      const currentModelName = this.viewModel.attr('model').model_singular;
-      const isCurrentModelName = currentModelName === ev.savedSearch.modelName;
-      if (ev.searchType !== 'AdvancedSearch' || !isCurrentModelName) {
-        return;
-      }
-
-      selectSavedSearchFilter(
-        this.viewModel.attr('advancedSearch'),
-        ev.savedSearch
-      );
     },
     '{pubSub} refetchOnce'(scope, event) {
       if (event.modelNames.includes(this.viewModel.attr('modelName'))) {
@@ -885,82 +648,3 @@ export default canComponent.extend({
     },
   },
 });
-
-const isLoadSavedSearch = (viewModel) => {
-  return !!viewModel.attr('router.saved_search');
-};
-
-const processNotExistedSearch = (viewModel) => {
-  notifier('warning', 'Saved search doesn\'t exist');
-  viewModel.removeAdvancedFilters();
-};
-
-export const loadSavedSearch = (viewModel) => {
-  const searchId = viewModel.attr('router.saved_search');
-  viewModel.attr('loading', true);
-
-  return SavedSearch.findOne({id: searchId}).then((response) => {
-    viewModel.attr('loading', false);
-    const savedSearch = response.SavedSearch;
-
-    if (savedSearch &&
-      savedSearch.object_type === viewModel.attr('modelName') &&
-      savedSearch.search_type === 'AdvancedSearch') {
-      const parsedSavedSearch = {
-        ...AdvancedSearch.parseFilterJson(savedSearch.filters),
-        id: savedSearch.id,
-      };
-
-      selectSavedSearchFilter(
-        viewModel.attr('advancedSearch'),
-        parsedSavedSearch
-      );
-      viewModel.applyAdvancedFilters();
-    } else {
-      // clear filter and apply default
-      processNotExistedSearch(viewModel);
-    }
-  }).fail(() => {
-    viewModel.attr('loading', false);
-    processNotExistedSearch(viewModel);
-  });
-};
-
-/**
- * Filter parentInstance items to remove duplicates
- * @param {Object} parentInstance - parent instance attribute of Advanced search
- * @param {Array} parentItems - parentItems attribute of Advanced search
- * @return {Array} - filtered parentItems
- */
-export const filterParentItems = (parentInstance, parentItems) => {
-  return parentItems.filter((item) =>
-    item.value.id !== parentInstance.value.id ||
-    item.value.type !== parentInstance.value.type);
-};
-
-/**
- * Select saved search filter to current advanced search
- * @param {can.Map} advancedSearch - current advanced search
- * @param {Object} savedSearch - saved search
- */
-const selectSavedSearchFilter = (advancedSearch, savedSearch) => {
-  const parentInstance = advancedSearch.attr('parentInstance');
-  if (parentInstance && savedSearch.parentItems) {
-    savedSearch.parentItems =
-      filterParentItems(parentInstance, savedSearch.parentItems);
-  }
-
-  advancedSearch.attr('filterItems', savedSearch.filterItems);
-  advancedSearch.attr('mappingItems', savedSearch.mappingItems);
-  advancedSearch.attr('parentItems', savedSearch.parentItems);
-
-  const selectedSavedSearch = {
-    filterItems: savedSearch.filterItems,
-    mappingItems: savedSearch.mappingItems,
-    parentItems: savedSearch.parentItems,
-    id: savedSearch.id,
-  };
-
-  // save selected saved search
-  advancedSearch.attr('selectedSavedSearch', selectedSavedSearch);
-};

@@ -21,6 +21,7 @@ import {
 } from '../../plugins/utils/snapshot-utils';
 import {isAllowed} from '../../permission';
 import template from './templates/tree-actions.stache';
+import pubSub from '../../pub-sub';
 
 export default canComponent.extend({
   tag: 'tree-actions',
@@ -110,7 +111,16 @@ export default canComponent.extend({
     model: null,
     showedItems: [],
     savedSearchPermalink: '',
+    pubSub,
   }),
+  events: {
+    '{pubSub} savedSearchPermalinkSet'(scope, event) {
+      const widgetId = event.widgetId;
+      if (widgetId === this.viewModel.attr('options.widgetId')) {
+        this.viewModel.attr('savedSearchPermalink', event.permalink);
+      }
+    },
+  },
   export() {
     this.dispatch('export');
   },

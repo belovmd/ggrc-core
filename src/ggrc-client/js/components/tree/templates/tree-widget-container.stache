@@ -6,34 +6,18 @@
 <div class="flex-box flex-col {{cssClasses}}">
   <div class="flex-box flex-col header tree-header-content">
     <div class="flex-box tree-filter">
-      <tree-filter-input class="flex-size-1"
-                         registerFilter:from="@registerFilter"
-                         on:submit="onFilter()"
-                         on:openAdvanced="openAdvancedFilter()"
-                         on:removeAdvanced="removeAdvancedFilters()"
-                         showAdvanced:from="statusFilterVisible"
-                         disabled:from="advancedSearch.filter"
-                         depth:from="options.depth"
-                         filterDeepLimit:from="options.filterDeepLimit"
-      ></tree-filter-input>
-      {{#if statusFilterVisible}}
-        <tree-status-filter class="flex-size-1"
-                            widgetId:from="options.widgetId"
-                            modelName:from="modelName"
-                            registerFilter:from="@registerFilter"
-                            on:filter="onFilter"
-                            disabled:from="advancedSearch.filter">
-          <multiselect-dropdown options:from="filterStates"
-                                placeholder:from="'Filter by State'"
-                                disabled:from="advancedSearch.filter"
-                                on:dropdownClose="selectItems(scope.event)">
-          </multiselect-dropdown>
-          {{#if statusTooltipVisible}}
-            <i class="fa fa-question-circle" rel="tooltip"
-               title="The state represents the state of this object information within GGRC. It does not indicate the state of the underlying product or system."></i>
-          {{/if}}
-        </tree-status-filter>
-      {{/if}}
+
+      <tree-view-filter
+        on:loadItems="loadItems"
+        on:onFilter="onFilter"
+        currentFilter:to="currentFilter"
+        advancedSearch:to="advancedSearch"
+        additionalFilter:from="options.additional_filter"
+        widgetId:from="options.widgetId"
+        columns:from="columns"
+        model:from="model">
+      </tree-view-filter>
+
       {{^if noResults}}
         <tree-pagination paging:from="pageInfo"></tree-pagination>
       {{/if}}
@@ -43,76 +27,8 @@
                   options:from="options"
                   model:from="model"
                   showedItems:from="showedItems"
-                  savedSearchPermalink:from="savedSearchPermalink"
                   on:export="export()">
     </tree-actions>
-
-    <simple-modal state:from="advancedSearch"
-                  on:hide="searchModalClosed"
-                  modalTitle:from="'{{model.title_singular}} Advanced Search'"
-                  extraCssClass:from="'advanced-search'">
-
-      <div class="advanced-search__body">
-      {{#if isSavedSearchShown}}
-        <aside>
-          <saved-search-list
-            widgetId:from="options.widgetId"
-            objectType:from="model.model_singular"
-            selectedSearchId:from="selectedSavedSearchId"
-            searchType:from="'AdvancedSearch'"
-            advancedSearch:from="advancedSearch"
-          ></saved-search-list>
-        </aside>
-      {{/if}}
-      <main>
-      <div class="advanced-search__content">
-        <div class="simple-modal__body">
-          <advanced-search-filter-container items:bind="advancedSearch.filterItems"
-                                            availableAttributes:from="columns.available"
-                                            modelName:from="modelName"
-                                            on:el:enter="applyAdvancedFilters()">
-          </advanced-search-filter-container>
-        </div>
-        <div class="advanced-search__mapping-header">
-          <h4>Filter by Mapping</h4>
-        </div>
-        <div class="simple-modal__body">
-          {{#advancedSearch.parentInstance}}
-            <div class="advanced-search__parent-filter">
-              <h6>Mapped to {{value.type}}:</h6><span>{{value.title}}</span>
-            </div>
-          {{/advancedSearch.parentInstance}}
-
-          {{#advancedSearch.parentItems}}
-            <div class="advanced-search__parent-filter">
-              <h6>Mapped to {{value.type}}:</h6><span>{{value.title}}</span>
-            </div>
-          {{/advancedSearch.parentItems}}
-          <advanced-search-mapping-container items:bind="advancedSearch.mappingItems"
-                                             modelName:from="modelName"
-                                             on:el:enter="applyAdvancedFilters()">
-          </advanced-search-mapping-container>
-        </div>
-      </div>
-      <div class="simple-modal__footer">
-        {{#if isSavedSearchShown}}
-          <create-saved-search
-            type:from="'AdvancedSearch'"
-            filterItems:from="advancedSearch.filterItems"
-            mappingItems:from="advancedSearch.mappingItems"
-            parentItems:from="advancedSearch.parentItems"
-            parentInstance:from="advancedSearch.parentInstance"
-            objectType:from="model.model_singular"
-          ></create-saved-search>
-        {{/if}}
-        <div class="advanced-search__controls">
-          <button type="reset" class="btn btn-white" on:el:click="resetAdvancedFilters()">Reset to Defaults</button>
-          <button type="submit" class="btn btn-lightBlue" on:el:click="applyAdvancedFilters()">Apply</button>
-        </div>
-      </div>
-      </main>
-      </div>
-    </simple-modal>
 
     <tree-header selectedColumns:from="columns.selected"
                  availableColumns:from="columns.available"

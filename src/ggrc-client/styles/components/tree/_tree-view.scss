@@ -71,8 +71,13 @@ tree-widget-container {
     margin-left: auto;
   }
 
-  tree-filter-input {
-    max-width: 700px;
+  tree-view-filter {
+    display: flex;
+    width: 100%;
+
+    tree-filter-input {
+      max-width: 700px;
+    }
   }
 
   .tree-footer {

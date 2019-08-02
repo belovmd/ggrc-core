@@ -19,17 +19,9 @@ let viewModel = canMap.extend({
         return newValue;
       },
     },
-    depth: {
-      type: 'boolean',
-      value: false,
-    },
     isExpression: {
       type: 'boolean',
       value: false,
-    },
-    filterDeepLimit: {
-      type: 'number',
-      value: 0,
     },
   },
   disabled: false,
@@ -39,11 +31,6 @@ let viewModel = canMap.extend({
   },
   init: function () {
     let options = this.attr('options');
-    let depth = this.attr('depth');
-    let filterDeepLimit = this.attr('filterDeepLimit');
-
-    options.attr('depth', depth);
-    options.attr('filterDeepLimit', filterDeepLimit);
     options.attr('name', 'custom');
 
     if (this.registerFilter) {
