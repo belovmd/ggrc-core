@@ -91,7 +91,7 @@ class Person(customattributable.CustomAttributable,
       'email',
       'name',
       attributes.FullTextAttr(
-          "Authorizations",
+          "System Authorizations",
           "system_wide_role"
       ),
   ]
