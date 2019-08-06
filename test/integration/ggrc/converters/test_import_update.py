@@ -3,9 +3,11 @@
 
 """Tests for bulk updates with CSV import."""
 
-from integration.ggrc import TestCase
+import collections
 
 from ggrc import models
+from integration.ggrc import TestCase
+from integration.ggrc.models import factories
 
 
 class TestImportUpdates(TestCase):
@@ -18,26 +20,36 @@ class TestImportUpdates(TestCase):
 
   def test_policy_basic_update(self):
     """ Test simple policy title update """
-    self.import_file("policy_basic_import.csv")
+    with factories.single_commit():
+      person = factories.PersonFactory(name="User-1",
+                                       email="user1@example.com")
+      policy = factories.PolicyFactory()
+      policy_slug = policy.slug
 
-    policy = models.Policy.query.filter_by(slug="p1").first()
-    self.assertEqual(policy.title, "some weird policy")
     revision_count = models.Revision.query.filter(
         models.Revision.resource_type == "Policy",
         models.Revision.resource_id == policy.id
     ).count()
     self.assertEqual(revision_count, 1)
 
-    self.import_file("policy_basic_import_update.csv")
+    updated_policy_data = [
+        collections.OrderedDict([
+            ("object_type", "Policy"),
+            ("Code*", policy_slug),
+            ("Title*", "Updated Policy"),
+            ("Admin*", person.email),
+        ]),
+    ]
 
-    policy = models.Policy.query.filter_by(slug="p1").first()
-    self.assertEqual(policy.title, "Edited policy")
+    self.import_data(*updated_policy_data)
+
+    policy = models.Policy.query.filter_by(slug=policy_slug).first()
+    person = models.Person.query.filter_by(email="user1@example.com").first()
+
+    self.assertEqual(policy.title, "Updated Policy")
+    self.assert_roles(policy, Admin=person)
     revision_count = models.Revision.query.filter(
         models.Revision.resource_type == "Policy",
         models.Revision.resource_id == policy.id
     ).count()
     self.assertEqual(revision_count, 2)
-    self.assertEqual(
-        policy.access_control_list[0][0].email,
-        "user1@example.com"
-    )
