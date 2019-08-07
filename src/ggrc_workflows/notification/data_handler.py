@@ -39,7 +39,7 @@ exposed functions
 """
 
 
-def get_cycle_created_task_data(notification):
+def get_cycle_created_task_data(notification, with_related=True):
   """Get data of created cycle task."""
   cycle_task = get_object(CycleTaskGroupObjectTask, notification.object_id)
   if not cycle_task:
@@ -59,7 +59,7 @@ def get_cycle_created_task_data(notification):
   task_group_assignee = data_handlers.get_person_dict(cycle_task_group.contact)
   workflow_admins = get_workflow_admins_dict(cycle.workflow)
   task = {
-      cycle_task.id: get_cycle_task_dict(cycle_task)
+      cycle_task.id: get_cycle_task_dict(cycle_task, with_related=with_related)
   }
 
   result = {
@@ -110,7 +110,8 @@ def get_cycle_created_task_data(notification):
   return result
 
 
-def get_cycle_task_due(notification, tasks_cache=None, del_rels_cache=None):
+def get_cycle_task_due(notification, tasks_cache=None, del_rels_cache=None,
+                       with_related=True):
   """Build data needed for the "task due" email notifications.
 
   Args:
@@ -148,7 +149,8 @@ def get_cycle_task_due(notification, tasks_cache=None, del_rels_cache=None):
   due = "due_today" if notif_name == "cycle_task_due_today" else "due_in"
   force = cycle_task.cycle_task_group.cycle.workflow.notify_on_change
 
-  task_info = get_cycle_task_dict(cycle_task, del_rels_cache=del_rels_cache)
+  task_info = get_cycle_task_dict(cycle_task, del_rels_cache=del_rels_cache,
+                                  with_related=with_related)
 
   task_info["task_group"] = cycle_task.cycle_task_group
 
@@ -175,7 +177,8 @@ def get_cycle_task_due(notification, tasks_cache=None, del_rels_cache=None):
 
 
 def get_cycle_task_overdue_data(
-    notification, tasks_cache=None, del_rels_cache=None
+    notification, tasks_cache=None, del_rels_cache=None,
+    with_related=True
 ):
   """Compile and return all relevant email data for task overdue notification.
 
@@ -185,6 +188,7 @@ def get_cycle_task_overdue_data(
       accessible by their ID as a key
     del_rels_cache (dict): prefetched Revision instances representing the
       relationships to Tasks that were deleted grouped by task ID as a key
+    with_related (bool): get notifications data with related objects.
   Returns:
     Dictionary containing the compiled data under the key that equals the
     overdue task assignee/secondary assignee's email address.
@@ -214,7 +218,8 @@ def get_cycle_task_overdue_data(
 
   # the filter expression to be included in the cycle task's URL and
   # automatically applied when user visits it
-  task_info = get_cycle_task_dict(cycle_task, del_rels_cache=del_rels_cache)
+  task_info = get_cycle_task_dict(cycle_task, del_rels_cache=del_rels_cache,
+                                  with_related=with_related)
 
   task_info['task_group'] = cycle_task.cycle_task_group
 
@@ -301,7 +306,7 @@ def get_cycle_data(notification, **_):
   return {}
 
 
-def get_cycle_task_declined_data(notification):
+def get_cycle_task_declined_data(notification, with_related=True):
   """Get data of declined cycle tasks."""
   cycle_task = get_object(CycleTaskGroupObjectTask, notification.object_id)
   if cycle_task:
@@ -326,7 +331,8 @@ def get_cycle_task_declined_data(notification):
                 notification.id: force
             },
             "task_declined": {
-                cycle_task.id: get_cycle_task_dict(cycle_task)
+                cycle_task.id: get_cycle_task_dict(cycle_task,
+                                                   with_related=with_related)
             }
         }
     }
@@ -397,7 +403,7 @@ def deleted_task_rels_cache(task_ids):
 
 
 def get_cycle_task_data(notification, tasks_cache=None, del_rels_cache=None,
-                        **_):
+                        with_related=True, **_):
   """Get all data of cycle task."""
   if tasks_cache is None:
     tasks_cache = {}
@@ -414,18 +420,23 @@ def get_cycle_task_data(notification, tasks_cache=None, del_rels_cache=None,
 
   notification_name = notification.notification_type.name
   if notification_name in ["manual_cycle_created", "cycle_created"]:
-    return get_cycle_created_task_data(notification)
+    return get_cycle_created_task_data(notification,
+                                       with_related=with_related)
   elif notification_name == "cycle_task_declined":
-    return get_cycle_task_declined_data(notification)
+    return get_cycle_task_declined_data(notification,
+                                        with_related=with_related)
   elif notification_name.endswith("cycle_task_due_in"):
     return get_cycle_task_due(
-        notification, tasks_cache=tasks_cache, del_rels_cache=del_rels_cache)
+        notification, tasks_cache=tasks_cache, del_rels_cache=del_rels_cache,
+        with_related=with_related)
   elif notification_name == "cycle_task_due_today":
     return get_cycle_task_due(
-        notification, tasks_cache=tasks_cache, del_rels_cache=del_rels_cache)
+        notification, tasks_cache=tasks_cache, del_rels_cache=del_rels_cache,
+        with_related=with_related)
   elif notification_name == "cycle_task_overdue":
     return get_cycle_task_overdue_data(
-        notification, tasks_cache=tasks_cache, del_rels_cache=del_rels_cache)
+        notification, tasks_cache=tasks_cache, del_rels_cache=del_rels_cache,
+        with_related=with_related)
 
   return {}
 
@@ -546,7 +557,6 @@ def _get_object_info_from_revision(revision, known_type):
 def get_cycle_task_related_objects(cycle_task):
   """Fetches names and titles of related objects to cycle task."""
   object_titles = []
-
   relationships = db.session.query(
       Relationship.source_id,
       Relationship.source_type,
@@ -577,27 +587,26 @@ def get_cycle_task_related_objects(cycle_task):
 
   for rel_type, rel_ids in type_relations.iteritems():
     related_model = models.get_model(rel_type)
-    if issubclass(type(related_model), models.mixins.Titled):
-      titles = db.session.query(related_model.title).filter(
+    attr_name = "title" if issubclass(
+        related_model, models.mixins.Titled) else "name"
+    try:
+      titles_list = db.session.query(getattr(related_model, attr_name)).filter(
           related_model.id.in_(rel_ids)
       ).all()
-      object_titles.extend(titles)
-    else:
-      try:
-        names = db.session.query(related_model.name).filter(
-            related_model.id.in_(rel_ids)
-        ).all()
-        object_titles.extend(names)
-      except AttributeError:
-        # we don't have name column
-        object_titles.extend([u"Untitled object"] * len(rel_ids))
+      object_titles.extend(titles_list)
+    except AttributeError:
+      # we don't have name column
+      object_titles.extend([u"Untitled object"] * len(rel_ids))
 
   return object_titles
 
 
-def get_cycle_task_dict(cycle_task, del_rels_cache=None):
+def get_cycle_task_dict(cycle_task, del_rels_cache=None, with_related=True):
   """Get dict representation for cycle task."""
-  object_titles = get_cycle_task_related_objects(cycle_task)
+  if not with_related:
+    object_titles = []
+  else:
+    object_titles = get_cycle_task_related_objects(cycle_task)
 
   # related objects might have been deleted or unmapped,
   # check the revision history

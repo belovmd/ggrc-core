@@ -99,15 +99,17 @@ class Services(object):
       return service(
           notif,
           tasks_cache=kwargs.get("tasks_cache"),
-          del_rels_cache=kwargs.get('del_rels_cache')
+          del_rels_cache=kwargs.get('del_rels_cache'),
+          with_related=kwargs.get('with_related')
       )
 
     return service(notif, ca_cache=kwargs.get('ca_cache'))
 
 
+# pylint: disable=too-many-arguments
 def get_filter_data(
     notification, people_cache, tasks_cache=None, del_rels_cache=None,
-    ca_cache=None
+    ca_cache=None, with_related=True
 ):
   """Get filtered notification data.
 
@@ -125,6 +127,7 @@ def get_filter_data(
       accessible by their ID as a key
     del_rels_cache (dict): prefetched Revision instances representing the
       relationships to Tasks that were deleted grouped by task ID as a key
+    with_related (bool): get data with related objects
 
   Returns:
     dict: dictionary containing notification data for all users who should
@@ -133,7 +136,7 @@ def get_filter_data(
   result = {}
   data = Services.call_service(
       notification, tasks_cache=tasks_cache, del_rels_cache=del_rels_cache,
-      ca_cache=ca_cache)
+      ca_cache=ca_cache, with_related=with_related)
 
   for user, user_data in data.iteritems():
     if should_receive(notification, user_data, people_cache):
@@ -141,7 +144,7 @@ def get_filter_data(
   return result
 
 
-def get_notification_data(notifications):
+def get_notification_data(notifications, with_related=True):
   """Get notification data for all notifications.
 
   This function returns a filtered data for all notifications for the users
@@ -150,6 +153,7 @@ def get_notification_data(notifications):
   Args:
     notifications (list of Notification): List of notification for which we
       want to get notification data.
+    with_related (bool): get notifications data with related objects.
 
   Returns:
     dict: Filtered dictionary containing all the data that should be sent for
@@ -161,13 +165,18 @@ def get_notification_data(notifications):
   people_cache = {}
 
   tasks_cache = cycle_tasks_cache(notifications)
-  deleted_rels_cache = deleted_task_rels_cache(tasks_cache.keys())
+  if with_related:
+    deleted_rels_cache = deleted_task_rels_cache(tasks_cache.keys())
+  else:
+    deleted_rels_cache = {}
+
   ca_cache = custom_attributes_cache(notifications)
 
   for notification in notifications:
     filtered_data = get_filter_data(
         notification, people_cache, tasks_cache=tasks_cache,
-        del_rels_cache=deleted_rels_cache, ca_cache=ca_cache)
+        del_rels_cache=deleted_rels_cache, ca_cache=ca_cache,
+        with_related=with_related)
     aggregate_data = merge_dict(aggregate_data, filtered_data)
 
   # Remove notifications for objects without a contact (such as task groups)
@@ -242,7 +251,7 @@ def generate_daily_notifications():
   ):
     handled += data_chunk.count()
     logger.info("Processing notifications: %s/%s", handled, all_count)
-    yield data_chunk, get_notification_data(data_chunk)
+    yield data_chunk, get_notification_data(data_chunk, with_related=False)
 
 
 def get_daily_notifications():
