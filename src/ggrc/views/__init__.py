@@ -10,7 +10,7 @@ import collections
 import datetime
 import json
 import logging
-
+import time
 import sqlalchemy
 import flask
 from werkzeug import exceptions
@@ -1176,16 +1176,22 @@ def generate_wf_tasks_notifs():
 
 
 @app.route(
-  "/_background_tasks/run_issues_update", methods=["POST"]
+  "/_background_tasks/_testep", methods=["POST"]
 )
 @background_task.queued_task
 def test_staff(task):
+  logger.warning("111")
+  time.sleep(20)
   flask.session['credentials'] = task.parameters["cred"]
 
   from ggrc.gdrive.file_actions import process_gdrive_file
+  logger.warning("inside")
+
   response = process_gdrive_file("1zjOApUXO5MkIiPPydkZ-BNVILjwBygcBeh_5259Syhg",
                                  "1jDsATaOSVIUIEUqChNk3wJnWAN1vsC73",
                                  is_uploaded=False)
+  logger.warning(response)
+  time.sleep(1000)
 
 
 @app.route("/api/testendpoint", methods=["POST"])
@@ -1193,14 +1199,21 @@ def test_staff(task):
 def make_test_bg_task():
   """testbgtask"""
   from ggrc.gdrive import get_http_auth
-  get_http_auth()
+  from ggrc import gdrive
+
+  try:
+    get_http_auth()
+  except gdrive.GdriveUnauthorized:
+    res = app.make_response(("auth", 401, [("Content-Type", "text/html")]))
+    return res
 
   bg_task = background_task.create_task(
-    name="generate_wf_tasks_notifications",
+    name="test_staff",
     url=flask.url_for(test_staff.__name__),
     queued_callback=lambda _: None,
     parameters={"cred": flask.session['credentials'], "state": flask.session['state']}
   )
+  db.session.commit()
   return bg_task.make_response(
     app.make_response(("scheduled %s" % bg_task.name, 200,
                        [('Content-Type', 'text/html')])))

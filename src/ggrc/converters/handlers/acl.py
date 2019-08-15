@@ -29,6 +29,7 @@ class AccessControlRoleColumnHandler(handlers.UsersColumnHandler):
       is_status_changing = self.row_converter.obj.status in \
           Statusable.DONE_STATES
       if is_updated and is_status_changing and not self.row_converter.is_new:
+        self.obj.status = "In Progress"
         self.add_warning(errors.STATE_WILL_BE_IGNORED,
                          column_name=self.display_name)
 

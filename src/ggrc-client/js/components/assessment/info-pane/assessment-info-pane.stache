@@ -29,6 +29,7 @@
                                 instance:from="instance">
                                     <div class="info-pane__section-title">Assessment Procedure</div>
                             </assessment-inline-item>
+                            <button on:el:click="onClick()">#CLICKME</button>
                         </div>
                     {{/if}}
                     {{#if instance.issueCreated}}

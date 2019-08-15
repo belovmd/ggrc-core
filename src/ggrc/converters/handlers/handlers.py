@@ -348,6 +348,8 @@ class UsersColumnHandler(UserColumnHandler):
     if self.value_explicitly_empty(self.raw_value):
       if not self.mandatory:
         self.set_empty = True
+        statusch = self.row_converter.attrs.get("Status")
+        statusch.ignore = True
         return None
       return self._missed_mandatory_person()
 
