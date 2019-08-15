@@ -1174,6 +1174,38 @@ def generate_wf_tasks_notifs():
                         [('Content-Type', 'text/html')])))
 
 
+
+@app.route(
+  "/_background_tasks/run_issues_update", methods=["POST"]
+)
+@background_task.queued_task
+def test_staff(task):
+  flask.session['credentials'] = task.parameters["cred"]
+
+  from ggrc.gdrive.file_actions import process_gdrive_file
+  response = process_gdrive_file("1zjOApUXO5MkIiPPydkZ-BNVILjwBygcBeh_5259Syhg",
+                                 "1jDsATaOSVIUIEUqChNk3wJnWAN1vsC73",
+                                 is_uploaded=False)
+
+
+@app.route("/api/testendpoint", methods=["POST"])
+@login.login_required
+def make_test_bg_task():
+  """testbgtask"""
+  from ggrc.gdrive import get_http_auth
+  get_http_auth()
+
+  bg_task = background_task.create_task(
+    name="generate_wf_tasks_notifications",
+    url=flask.url_for(test_staff.__name__),
+    queued_callback=lambda _: None,
+    parameters={"cred": flask.session['credentials'], "state": flask.session['state']}
+  )
+  return bg_task.make_response(
+    app.make_response(("scheduled %s" % bg_task.name, 200,
+                       [('Content-Type', 'text/html')])))
+
+
 class UnmapObjectsView(flask.views.MethodView):
   """View for unmaping objects by deletion of relationships."""
 
