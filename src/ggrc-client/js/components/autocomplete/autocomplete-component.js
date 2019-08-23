@@ -20,7 +20,7 @@ let component = {
   viewModel: canMap.extend({
     placeholder: '',
     searchItemsType: '',
-    className: '',
+    extraCssClass: '',
     value: null,
 
     // disable automatically mapping the picked item from the live search

@@ -3,12 +3,12 @@
   Licensed under http://www.apache.org/licenses/LICENSE-2.0 <see LICENSE file>
 }}
 
-<div class="{{className}} objective-selector autocomplete--wrapper">
+<div class="objective-selector autocomplete--wrapper">
   <input type="text"
          data-lookup="{{searchItemsType}}"
          data-no-automap="{{automappingOff}}"
          {{#if disable}}disabled{{/if}}
-         class="{{^if context.isEdit}}autocomplete_wide{{/if}} autocomplete--input"
+         class="{{extraCssClass}} {{^if context.isEdit}}autocomplete_wide{{/if}} autocomplete--input"
          placeholder="{{placeholder}}"
          el:value:bind="value">
 </div>
