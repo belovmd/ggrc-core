@@ -23,7 +23,7 @@
 {{#if model}}
 {{#is_allowed "create" model.model_singular context=null}}
     {{^if disableCreate}}
-      {{^is(model.model_singular, "Workflow")}}
+      {{^if_in model.model_singular 'Workflow,AssessmentTemplate'}}
         <li class="ui-menu-item add-new oneline" data-ui-autocomplete-item="">
           <a data-object-plural="{{model.table_plural}}"
              data-modal-class="modal-wide"
@@ -34,7 +34,7 @@
             + Create
           </a>
         </li>
-      {{/is}}
+      {{/if_in}}
     {{/if}}
 {{/is_allowed}}
 {{/if}}
