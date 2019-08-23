@@ -10,4 +10,10 @@ autocomplete-component {
     width: 100%;
     min-height: 28px;
   }
+
+  &.autocomplete__large {
+    .objective-selector {
+      width: 300px;
+    }
+  }
 }

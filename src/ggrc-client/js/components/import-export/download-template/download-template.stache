@@ -35,6 +35,39 @@
                           placeholder:from="'Choose Templates'"
                           on:selectedChanged="selectItems(scope.event)">
     </multiselect-dropdown>
+
+    {{#if showExtraFields}}
+      <div class="download-template__extra-fields">
+        <h6>
+          Add Assessment Templates (optional)
+          <a href="javascript://" class="add-filter-rule" on:el:click="addTemplate()">
+            <i class="fa fa-fw fa-plus-circle"></i>
+          </a>
+        </h6>
+
+      {{#each templates}}
+        <div class="single-line-filter download-template__extra-asmt-templates">
+          Choose assessment template
+          <div class="download-template__autocomplete-container flex-col">
+            <div>
+              <autocomplete-component searchItemsType:from="'AssessmentTemplate'"
+                                      extraCssClass:from="'search-icon'"
+                                      on:vm:itemSelected="selectTemplate(scope.event.selectedItem, @index)"
+                                      placeholder:from="'Enter text to search for Assessment Template'"
+                                      class="autocomplete__large">
+              </autocomplete-component>
+              <i class="fa fa-trash-o" on:el:click="removeTemplate(@index)"></i>
+            </div>
+            {{#if isDuplicate}}
+              <div class="download-template__template-error">
+                This assessment template was already chosen
+              </div>
+            {{/if}}
+          </div>
+        </div>
+      {{/each}}
+      </div>
+    {{/if}}
   </div>
 
   <div class="simple-modal__footer">

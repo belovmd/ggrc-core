@@ -443,6 +443,14 @@ $historyBlockWidth: 350px;
 }
 
 .download-template {
+  &.simple-modal {
+    max-height: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    margin: 0;
+  }
+
   .simple-modal {
     &__header {
       border-bottom: none;
@@ -475,6 +483,37 @@ $historyBlockWidth: 350px;
     h4 {
       margin: 25px 0 10px;
     }
+  }
+
+  &__extra-fields {
+    margin-top: 30px;
+    margin-bottom: 10px;
+
+    h6 {
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+  }
+
+  &__extra-asmt-templates {
+    display: flex;
+    align-items: baseline;
+
+    .fa-trash-o {
+      margin-left: 5px;
+      cursor: pointer;
+    }
+  }
+
+  &__autocomplete-container {
+    margin-left: 5px;
+  }
+
+  &__template-error {
+    color: $red;
+    font-size: 75%;
+    font-weight: bold;
+    margin-top: 4px;
   }
 
   .multiselect-dropdown {
