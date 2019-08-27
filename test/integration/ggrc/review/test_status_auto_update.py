@@ -6,6 +6,7 @@
 import ddt
 
 from ggrc.models import all_models
+from ggrc.snapshotter import rules
 
 from integration.ggrc import TestCase, generator
 from integration.ggrc.models import factories
@@ -219,26 +220,7 @@ class TestReviewStatusUpdate(TestCase):
     review = all_models.Review.query.get(review_id)
     self.assertEqual(review.status, all_models.Review.STATES.REVIEWED)
 
-  @ddt.data(
-      "Standard",
-      "Regulation",
-      "Requirement",
-      "Objective",
-      "Control",
-      "Product",
-      "System",
-      "Process",
-      "AccessGroup",
-      "Contract",
-      "DataAsset",
-      "Facility",
-      "Market",
-      "OrgGroup",
-      "Policy",
-      "Risk",
-      "Threat",
-      "Vendor"
-  )
+  @ddt.data(*rules.Types.all)
   def test_map_snapshotable(self, snapshotable):
     """Map '{}' should change review status"""
     with factories.single_commit():
@@ -280,15 +262,7 @@ class TestReviewStatusUpdate(TestCase):
     review = all_models.Review.query.get(review_id)
     self.assertEqual(review.status, all_models.Review.STATES.UNREVIEWED)
 
-  @ddt.data(
-      "Assessment",
-      "Issue",
-      "Program",
-      "Project",
-      "Audit",
-      "AssessmentTemplate",
-      "Person",
-  )
+  @ddt.data(*rules.Types.ignore)
   def test_map_nonsnapshotable(self, nonsnapshotable):
     """Map '{}' shouldn't change review status"""
     program = factories.ProgramFactory()

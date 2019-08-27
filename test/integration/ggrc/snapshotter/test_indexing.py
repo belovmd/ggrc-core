@@ -12,6 +12,7 @@ from ggrc import models
 from ggrc.models import all_models
 from ggrc.fulltext.mysql import MysqlRecordProperty as Record
 from ggrc.snapshotter.indexer import delete_records
+from ggrc.snapshotter.rules import Types
 
 from integration.ggrc.snapshotter import SnapshotterBaseTestCase
 from integration.ggrc.models import factories
@@ -110,7 +111,7 @@ class TestSnapshotIndexing(SnapshotterBaseTestCase):
              for s in snapshots}
         ))
 
-    self.assertEqual(records.count(), 66)
+    self.assertEqual(records.count(), len(Types.all - Types.external) * 3)
 
     # At this point all objects are no longer in the session and we have to
     # manually refresh them from the database
@@ -261,7 +262,7 @@ class TestSnapshotIndexing(SnapshotterBaseTestCase):
              for s in snapshots}
         ))
 
-    self.assertEqual(records.count(), 66)
+    self.assertEqual(records.count(), len(Types.all - Types.external) * 3)
 
     custom_attributes = [
         (objective,
@@ -319,8 +320,9 @@ class TestSnapshotIndexing(SnapshotterBaseTestCase):
     snapshots = db.session.query(models.Snapshot).all()
 
     records = get_records(audit, snapshots)
+    expected_count = len(Types.all - Types.external) * 3
 
-    self.assertEqual(records.count(), 63)
+    self.assertEqual(records.count(), expected_count)
 
     delete_records({s.id for s in snapshots})
 
@@ -331,7 +333,7 @@ class TestSnapshotIndexing(SnapshotterBaseTestCase):
 
     records = get_records(audit, snapshots)
 
-    self.assertEqual(records.count(), 63)
+    self.assertEqual(records.count(), expected_count)
 
   def assert_indexed_fields(self, obj, search_property, values):
     """Assert index content in full text search table."""

@@ -295,19 +295,19 @@ class TestSnapshotMappingRules(BaseTestMappingRules):
   all_rules = []
   assessment_rules = ["AccessGroup", "Contract", "Control",
                       "DataAsset", "Facility", "Market", "Objective",
-                      "OrgGroup", "Policy", "Process", "Product",
+                      "OrgGroup", "Policy", "Process", "Product", "Project",
                       "Regulation", "Requirement", "Standard", "System",
                       "Vendor", "Risk", "Threat", "Metric", "ProductGroup",
                       "TechnologyEnvironment", 'KeyReport', 'AccountBalance']
   audit_rules = ["AccessGroup", "Contract", "Control",
                  "DataAsset", "Facility", "Market", "Objective",
-                 "OrgGroup", "Policy", "Process", "Product",
+                 "OrgGroup", "Policy", "Process", "Product", "Project",
                  "Regulation", "Requirement", "Standard", "System",
                  "Vendor", "Risk", "Threat", "Metric", "ProductGroup",
                  "TechnologyEnvironment", 'KeyReport', 'AccountBalance']
   issue_rules = ["AccessGroup", "Contract", "Control",
                  "DataAsset", "Facility", "Market", "Objective",
-                 "OrgGroup", "Policy", "Process", "Product",
+                 "OrgGroup", "Policy", "Process", "Product", "Project",
                  "Regulation", "Requirement", "Standard", "System",
                  "Vendor", "Risk", "Threat", "Metric", "ProductGroup",
                  "TechnologyEnvironment", 'KeyReport', 'AccountBalance']
