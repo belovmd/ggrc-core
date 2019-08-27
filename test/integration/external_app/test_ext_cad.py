@@ -41,6 +41,7 @@ class TestExternalGlobalCustomAttributes(ProductTestCase):
         "placeholder": "Input text",
         "context": None,
         "external_id": 1,
+        "external_name": "control_string_123123",
     }
 
   @staticmethod
@@ -60,6 +61,7 @@ class TestExternalGlobalCustomAttributes(ProductTestCase):
         "placeholder": "Input text",
         "context": None,
         "external_id": 1,
+        "external_name": "control_html_123123",
     }
 
   @staticmethod
@@ -78,6 +80,7 @@ class TestExternalGlobalCustomAttributes(ProductTestCase):
         "helptext": "GCA Date attribute",
         "context": None,
         "external_id": 1,
+        "external_name": "control_date_123123",
     }
 
   @staticmethod
@@ -96,6 +99,7 @@ class TestExternalGlobalCustomAttributes(ProductTestCase):
         "helptext": "GCA Dropdown attribute",
         "context": None,
         "external_id": 1,
+        "external_name": "control_dropdown_123123",
         "multi_choice_options": "1,3,2",
     }
 
@@ -115,6 +119,7 @@ class TestExternalGlobalCustomAttributes(ProductTestCase):
         "helptext": "GCA Multiselect attribute",
         "context": None,
         "external_id": 1,
+        "external_name": "control_multistring_123123",
         "multi_choice_options": "1,3,2",
     }
 
@@ -168,6 +173,14 @@ class TestExternalGlobalCustomAttributes(ProductTestCase):
         external_cad.placeholder,
         attribute_payload["placeholder"]
     )
+    self.assertEqual(
+        external_cad.external_id,
+        attribute_payload["external_id"]
+    )
+    self.assertEqual(
+        external_cad.external_name,
+        attribute_payload["external_name"]
+    )
 
   def _run_date_asserts(self, external_cad, attribute_payload):
     """Runs CAD date asserts.
@@ -195,6 +208,14 @@ class TestExternalGlobalCustomAttributes(ProductTestCase):
     self.assertEqual(
         external_cad.helptext,
         attribute_payload["helptext"]
+    )
+    self.assertEqual(
+        external_cad.external_id,
+        attribute_payload["external_id"]
+    )
+    self.assertEqual(
+        external_cad.external_name,
+        attribute_payload["external_name"]
     )
 
   def _run_select_asserts(self, external_cad, attribute_payload):
@@ -227,6 +248,14 @@ class TestExternalGlobalCustomAttributes(ProductTestCase):
     self.assertEqual(
         external_cad.multi_choice_options,
         attribute_payload["multi_choice_options"]
+    )
+    self.assertEqual(
+        external_cad.external_id,
+        attribute_payload["external_id"]
+    )
+    self.assertEqual(
+        external_cad.external_name,
+        attribute_payload["external_name"]
     )
 
   def _run_cad_asserts(self, attribute_type, external_cad, attribute_payload):
@@ -368,6 +397,8 @@ class TestECADReindex(query_helper.WithQueryApi, ggrc.TestCase):
         "external_custom_attribute_definition": {
             "id": 1,
             "external_id": 2,
+            "external_name": "%s_%s_123123" %
+                             (definition_type, attribute_type.lower()),
             "title": title,
             "attribute_type": attribute_type,
             "definition_type": definition_type,
@@ -375,9 +406,7 @@ class TestECADReindex(query_helper.WithQueryApi, ggrc.TestCase):
             "mandatory": False,
             "helptext": "",
             "placeholder": "",
-            "context": {
-                "id": None
-            }
+            "context": {"id": None},
         }
     }
     if attribute_type == "Multiselect":
@@ -509,6 +538,7 @@ class TestECADResponse(ggrc.TestCase):
         "external_custom_attribute_definition": {
             "id": 1,
             "external_id": 2,
+            "external_name": "risk_dropdown_123123",
             "title": "ECAD TiTle",
             "attribute_type": "Dropdown",
             "definition_type": "risk",
@@ -535,6 +565,7 @@ class TestECADResponse(ggrc.TestCase):
         "external_custom_attribute_definition": {
             "id": 1,
             "external_id": 2,
+            "external_name": "control_dropdown_123123",
             "title": "ECAD TiTle",
             "attribute_type": "Dropdown",
             "definition_type": "control",
