@@ -173,7 +173,14 @@ def create_ticket_for_new_issue(obj, issue_tracker_info):
         "Unable to create a ticket while creating object ID=%d: %s",
         obj.id, error
     )
-    obj.add_warning("Unable to create a ticket in issue tracker.")
+    if error.status == 403 and \
+       "does not have permission to append to hotlist" in str(error.data):
+      message = ("Ticket in issue tracker wasn't added to Hotlist. "
+                 "Please make sure that you have enough rights for the "
+                 "Hotlist and try again.")
+    else:
+      message = "Unable to create a ticket in issue tracker."
+    obj.add_warning(message)
     issuetracker_issue_params["enabled"] = False
 
   # Create object in GGRC with info about issue tracker integration.
