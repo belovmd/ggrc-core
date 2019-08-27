@@ -115,3 +115,8 @@ Object type,,,,,,,,,,,,,,,,,,,,,,
 AccountBalance,Code*,Title*,Description,Notes,Admin*,verifier,assignee,Effective Date,Launch Status,Reference URL,,,,,,,,,,,,
 ,AccountBalance code,AccountBalance title,AccountBalance description,AccountBalance notes,"user@example.com
 user1@example.com",user@example.com,user@example.com,20/2/2020,Draft,http://url.example.zzz,,,,,,,,,,,,
+
+Object type
+Project,Code*,Title*,Description,Notes,Admin*,Verifier,Assignee,Launch Status,Effective Date,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,Project code,Project title,Project description,Project notes,"user@example.com
+user1@example.com",user@example.com,user@example.com,Draft,20/2/2020,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
