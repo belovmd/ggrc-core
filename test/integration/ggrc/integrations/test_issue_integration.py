@@ -769,7 +769,8 @@ class TestDisabledIssueIntegration(ggrc.TestCase):
     mock_update_issue.assert_not_called()
 
   @mock.patch("ggrc.integrations.issues.Client.create_issue",
-              side_effect=[integrations_errors.Error, {"issueId": "issueId"}])
+              side_effect=[integrations_errors.HttpError(data=''),
+                           {"issueId": "issueId"}])
   @mock.patch.object(settings, "ISSUE_TRACKER_ENABLED", True)
   def test_issue_recreation(self, _):
     """Test retrying to turn on integration after failed creation."""

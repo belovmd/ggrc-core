@@ -168,7 +168,7 @@ def create_ticket_for_new_issue(obj, issue_tracker_info):
     issue_url = integration_utils.build_issue_tracker_url(res["issueId"])
     issuetracker_issue_params["issue_url"] = issue_url
     issuetracker_issue_params["issue_id"] = res["issueId"]
-  except integrations_errors.Error as error:
+  except integrations_errors.HttpError as error:
     logger.error(
         "Unable to create a ticket while creating object ID=%d: %s",
         obj.id, error
