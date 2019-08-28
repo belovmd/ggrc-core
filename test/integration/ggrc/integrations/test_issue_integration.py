@@ -839,3 +839,38 @@ class TestDisabledIssueIntegration(ggrc.TestCase):
           },
       })
     update_issue_mock.assert_not_called()
+
+  @mock.patch("ggrc.integrations.issues.Client.create_issue",
+              side_effect=[integrations_errors.HttpError(
+                  data={"error": "com.google.apps.framework.request."
+                                 "ForbiddenException: a@test.google.com "
+                                 "[FULLY_TRUSTED_DEVICE] does not have "
+                                 "permission to append to hotlist 22222"},
+                  status=403)])
+  @mock.patch.object(settings, "ISSUE_TRACKER_ENABLED", True)
+  def test_no_permissions_hotlist(self, _):
+    """Test warning message if no permissions to Hotlist."""
+    issue_tracker_attrs = {
+        "enabled": True,
+        "component_id": 1234,
+        "hotlist_id": 4321,
+        "issue_type": "Default Issue type",
+        "issue_priority": "P2",
+        "issue_severity": "S1",
+    }
+
+    response = self.api.post(all_models.Issue, {
+        "issue": {
+            "title": "test title",
+            "context": None,
+            "issue_tracker": issue_tracker_attrs,
+            "due_date": "10/10/2019"
+        },
+    })
+
+    expected_message = ("Ticket in issue tracker wasn't added to Hotlist. "
+                        "Please make sure that you have enough rights for the "
+                        "Hotlist and try again.")
+
+    assert expected_message in response.json.get("issue", {})\
+        .get("issue_tracker", {}).get("_warnings", [])
