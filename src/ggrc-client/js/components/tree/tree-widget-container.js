@@ -6,6 +6,7 @@
 import loDebounce from 'lodash/debounce';
 import loGet from 'lodash/get';
 import loFindIndex from 'lodash/findIndex';
+import loSortBy from 'lodash/sortBy';
 import makeArray from 'can-util/js/make-array/make-array';
 import canStache from 'can-stache';
 import canList from 'can-list';
@@ -284,10 +285,24 @@ let viewModel = canMap.extend({
       this.attr('options.widgetId')
     );
 
+    this.addServiceColumns(columns);
+
     this.attr('columns.available', columns.available);
     this.attr('columns.selected', columns.selected);
     this.attr('columns.mandatory', columns.mandatory);
     this.attr('columns.disableConfiguration', columns.disableConfiguration);
+  },
+  addServiceColumns(columns) {
+    if (this.attr('modelName') === 'Person') {
+      const serviceCols =
+        this.attr('model').tree_view_options.service_attr_list;
+
+      columns.available = columns.available.concat(serviceCols);
+      columns.selected = columns.selected.concat(serviceCols);
+
+      columns.available = loSortBy(columns.available, 'order');
+      columns.selected = loSortBy(columns.selected, 'order');
+    }
   },
   setSortingConfiguration: function () {
     let sortingInfo = TreeViewUtils
@@ -303,6 +318,8 @@ let viewModel = canMap.extend({
       selectedColumns,
       this.attr('options.widgetId')
     );
+
+    this.addServiceColumns(columns);
 
     this.attr('columns.selected', columns.selected);
   },

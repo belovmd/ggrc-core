@@ -322,6 +322,7 @@ function getVisibleColumnsConfig(available, selected) {
       name: attr.attr_name,
       mandatory: attr.mandatory,
       selected: isSelected,
+      order: attr.order,
     }));
   });
 
