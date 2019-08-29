@@ -3,7 +3,6 @@
  Licensed under http://www.apache.org/licenses/LICENSE-2.0 <see LICENSE file>
  */
 
-import loIsFunction from 'lodash/isFunction';
 import Cacheable from '../cacheable';
 import tracker from '../../tracker';
 import CaUpdate from '../mixins/ca-update';
@@ -38,24 +37,26 @@ export default Cacheable.extend({
     attr_list: [{
       attr_title: 'Name',
       attr_name: 'title',
+      order: 1,
     }, {
       attr_title: 'Email',
       attr_name: 'email',
     }, {
-      attr_title(viewType) {
-        viewType = loIsFunction(viewType) ? viewType() : viewType;
-        if (viewType === 'unified-mapper') {
-          return 'System Authorizations';
-        }
-
-        return 'Object Authorizations';
-      },
+      attr_title: 'System Authorizations',
       attr_name: 'authorizations',
-    }, {
+    },
+    {
       attr_title: 'Last Updated Date',
       attr_name: 'updated_at',
     }],
     display_attr_names: ['title', 'email', 'authorizations', 'updated_at'],
+    service_attr_list: [{
+      attr_title: 'Object Authorizations',
+      attr_name: 'object authorizations',
+      disable_sorting: true,
+      mandatory: true,
+      order: 2,
+    }],
   },
   list_view_options: {
     find_params: {__sort: 'name,email'},
