@@ -7,7 +7,10 @@ import canStache from 'can-stache';
 import canMap from 'can-map';
 import canComponent from 'can-component';
 import {formatDate} from '../../plugins/utils/date-utils';
-import {getUserRoles} from '../../plugins/utils/user-utils';
+import {
+  getUserSystemRoles,
+  getUserObjectRoles,
+} from '../../plugins/utils/user-utils';
 import template from './templates/tree-item-attr.stache';
 import {convertMarkdownToHtml} from '../../plugins/utils/markdown-utils';
 import {getOnlyAnchorTags} from '../../plugins/ggrc_utils';
@@ -67,10 +70,16 @@ export default canComponent.extend({
           return this.getDefaultValue();
         },
       },
-      userRoles: {
+      userSystemRoles: {
         type: String,
         get() {
-          return getUserRoles(this.attr('instance')).join(', ');
+          return getUserSystemRoles(this.attr('instance')).join(', ');
+        },
+      },
+      userObjectRoles: {
+        type: String,
+        get() {
+          return getUserObjectRoles(this.attr('instance')).join(', ');
         },
       },
     },

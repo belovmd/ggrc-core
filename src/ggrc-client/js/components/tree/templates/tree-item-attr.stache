@@ -121,7 +121,19 @@
       <div class="item-data">
         <div class="tree-title-area">
           <span class="role" rel="tooltip">
-            {{userRoles}}
+            {{userSystemRoles}}
+          </span>
+        </div>
+      </div>
+    </div>
+  {{/case}}
+
+  {{#case 'object authorizations'}}
+    <div class="role tree-title-area">
+      <div class="item-data">
+        <div class="tree-title-area">
+          <span class="role" rel="tooltip">
+            {{userObjectRoles}}
           </span>
         </div>
       </div>

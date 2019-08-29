@@ -52,10 +52,16 @@ function loadPersonProfile(person) {
   });
 }
 
-function getUserRoles(person) {
-  let parentInstance = getPageInstance();
+function getUserSystemRoles(person) {
+  const globalRole = person.system_wide_role === 'No Access' ?
+    'No Role' : person.system_wide_role;
+  return [globalRole];
+}
 
-  let roles = {};
+function getUserObjectRoles(person) {
+  const parentInstance = getPageInstance();
+
+  const roles = {};
   let allRoleNames = [];
 
   loForEach(GGRC.access_control_roles, (role) => {
@@ -68,10 +74,6 @@ function getUserRoles(person) {
     }).map((acl) => {
       return roles[acl.ac_role_id].name;
     }));
-  } else {
-    let globalRole = person.system_wide_role === 'No Access' ?
-      'No Role' : person.system_wide_role;
-    allRoleNames = [globalRole];
   }
   return allRoleNames;
 }
@@ -80,5 +82,6 @@ export {
   cacheCurrentUser,
   getPersonInfo,
   loadPersonProfile,
-  getUserRoles,
+  getUserSystemRoles,
+  getUserObjectRoles,
 };
