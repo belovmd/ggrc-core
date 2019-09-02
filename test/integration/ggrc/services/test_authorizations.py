@@ -42,7 +42,7 @@ class TestPeopleSearch(TestCase):
         "object_name": "Person",
         "filters": {
             "expression": {
-                "left": "Authorizations",
+                "left": "System Authorizations",
                 "op": {"name": "~"},
                 "right": search_role,
             },
