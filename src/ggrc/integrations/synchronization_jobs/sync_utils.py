@@ -83,17 +83,17 @@ def get_active_issue_info(model_name):
   ).order_by(issuetracker_cls.object_id).all()
 
 
-def iter_issue_batches(ids):
+def iter_issue_batches(ids, batch_size=_BATCH_SIZE):
   """Generates a sequence of batches of issues from Issue Tracker by IDs."""
   cli = issues.Client()
 
-  for i in xrange(0, len(ids), _BATCH_SIZE):
-    chunk = ids[i:i + _BATCH_SIZE]
+  for i in xrange(0, len(ids), batch_size):
+    chunk = ids[i:i + batch_size]
     logger.debug('Issue ids to process: %s', chunk)
     try:
       response = cli.search({
           'issue_ids': chunk,
-          'page_size': _BATCH_SIZE,
+          'page_size': batch_size,
       })
     except integrations_errors.HttpError as error:
       logger.error(
@@ -113,7 +113,9 @@ def iter_issue_batches(ids):
           'ccs': state.get('ccs', []),
           'assignee': state.get('assignee'),
           'reporter': state.get('reporter'),
-          'verifier': state.get('verifier')
+          'verifier': state.get('verifier'),
+          'hotlist_ids': state.get('hotlist_ids'),
+          'component_id': state.get('component_id')
       }
 
       issue_infos[info['issueId']] = issue_info
