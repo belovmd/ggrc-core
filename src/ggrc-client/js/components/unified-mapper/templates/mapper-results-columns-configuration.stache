@@ -16,13 +16,13 @@
     <ul class="attr-list">
       {{#columns}}
         <li class="{{#mandatory}}disabled{{/mandatory}}">
-          <tree-visible-column-checkbox column:from="{.}" viewType:from="'unified-mapper'">
+          <tree-visible-column-checkbox column:from="{.}">
           </tree-visible-column-checkbox>
         </li>
       {{/columns}}
       {{#serviceColumns}}
         <li class="{{#mandatory}}disabled{{/mandatory}}">
-          <tree-visible-column-checkbox column:from="{.}" viewType:from="'unified-mapper'">
+          <tree-visible-column-checkbox column:from="{.}">
           </tree-visible-column-checkbox>
         </li>
       {{/serviceColumns}}

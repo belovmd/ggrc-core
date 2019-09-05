@@ -4,12 +4,12 @@
 }}
 
 {{#column}}
-  <label class="checkbox-inline" title="{{getTitle(.)}}">
+  <label class="checkbox-inline" title="{{title}}">
     <input type="checkbox"
       checked:bind="selected"
       {{#mandatory}}disabled{{/mandatory}}
       value="{{name}}"
       class="attr-checkbox {{#mandatory}}mandatory{{/mandatory}}">
-    {{getTitle(.)}}
+    {{title}}
   </label>
 {{/column}}

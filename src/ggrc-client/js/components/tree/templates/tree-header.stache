@@ -17,7 +17,7 @@
       <ul class="attr-list">
         {{#columns}}
           <li class="{{#if mandatory}}disabled{{/if}}">
-            <tree-visible-column-checkbox column:from="{.}" viewType:from="'tree-view'">
+            <tree-visible-column-checkbox column:from="{.}">
             </tree-visible-column-checkbox>
           </li>
         {{/columns}}
