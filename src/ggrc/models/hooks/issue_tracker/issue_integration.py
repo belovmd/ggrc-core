@@ -10,6 +10,7 @@ import logging
 import itertools
 
 from ggrc import db
+from ggrc.integrations import constants
 from ggrc.integrations import issues
 from ggrc.integrations import integrations_errors
 from ggrc.models import all_models
@@ -168,18 +169,16 @@ def create_ticket_for_new_issue(obj, issue_tracker_info):
     issue_url = integration_utils.build_issue_tracker_url(res["issueId"])
     issuetracker_issue_params["issue_url"] = issue_url
     issuetracker_issue_params["issue_id"] = res["issueId"]
-  except integrations_errors.HttpError as error:
+  except integrations_errors.Error as error:
     logger.error(
         "Unable to create a ticket while creating object ID=%d: %s",
         obj.id, error
     )
-    if error.status == 403 and \
+    if hasattr(error, "status") and error.status == 403 and \
        "does not have permission to append to hotlist" in str(error.data):
-      message = ("Ticket in issue tracker wasn't added to Hotlist. "
-                 "Please make sure that you have enough rights for the "
-                 "Hotlist and try again.")
+      message = constants.HOTLIST_PERMISSIONS_ERROR
     else:
-      message = "Unable to create a ticket in issue tracker."
+      message = constants.CREATION_ERROR
     obj.add_warning(message)
     issuetracker_issue_params["enabled"] = False
 

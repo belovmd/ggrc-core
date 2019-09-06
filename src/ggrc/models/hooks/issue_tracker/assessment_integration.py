@@ -2550,12 +2550,14 @@ class AssessmentTrackerHandler(object):
         assessment: object from Assessment model
     """
     if sync_result.status == SyncResult.SyncResultStatus.ERROR:
-      assessment.add_warning(constants.WarningsDescription.CREATE_ASSESSMENT)
+      if (sync_result.error.status == 403 and
+          "does not have permission to append to hotlist" in
+              str(sync_result.error.data)):
+        assessment.add_warning(constants.HOTLIST_PERMISSIONS_ERROR)
+      else:
+        assessment.add_warning(constants.WarningsDescription.CREATE_ASSESSMENT)
       logger.error(
-          constants.ErrorsDescription.CREATE_ASSESSMENT % (
-              assessment.id,
-              sync_result.error
-          ),
+          constants.ErrorsDescription.CREATE_ASSESSMENT,
           assessment.id,
           sync_result.error
       )

@@ -61,6 +61,14 @@ COMMENT_TMPL = (
     u"information from the GGRC '{model}'. Link - {link}"
 )
 
+
+HOTLIST_PERMISSIONS_ERROR = (
+    "Ticket in issue tracker wasn't added to Hotlist. "
+    "Please make sure that you have enough rights for the "
+    "Hotlist and try again.")
+
+CREATION_ERROR = "Unable to create a ticket in issue tracker."
+
 AVAILABLE_PRIORITIES = ("P0", "P1", "P2", "P3", "P4", )
 AVAILABLE_SEVERITIES = ("S0", "S1", "S2", "S3", "S4", )
 

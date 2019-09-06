@@ -1401,6 +1401,148 @@ class TestIssueTrackerIntegration(SnapshotterBaseTestCase):
                                    "longer be tracked within this bug."}
     upd_mock.assert_called_with(issue_id, expected_comment)
 
+  @staticmethod
+  def _build_revision_query(resource):
+    """Build query for revisions of provided resource."""
+    return all_models.Revision.query.filter(
+        all_models.Revision.resource_type == resource.__class__.__name__,
+        all_models.Revision.resource_id == resource.id,
+    ).order_by(
+        all_models.Revision.id.desc(),
+    )
+
+  def _map(self, source, destination):
+    """Map `source` object to `destination` one."""
+    return self.api.post(
+        all_models.Relationship,
+        {
+            "relationship": {
+                "source": {
+                    "type": source.type,
+                    "id": source.id,
+                },
+                "destination": {
+                    "type": destination.type,
+                    "id": destination.id,
+                },
+                "context": None
+            },
+        },
+    )
+
+  @mock.patch.object(settings, "ISSUE_TRACKER_ENABLED", True)
+  @mock.patch("ggrc.integrations.issues.Client.update_issue",
+              return_value=mock.MagicMock())
+  def test_snapshot_map_test_plan(self, update_issue_mock):
+    """Test comment with updated test plan is added when mapping snapshot."""
+    asmt_issue_id, control_test_plan = 1, factories.random_str().strip()
+    comment = constants.ASMT_TEST_PLAN_UPD_TMPL.format(control_test_plan)
+
+    with factories.single_commit():
+      control = factories.ControlFactory(
+          test_plan=control_test_plan,
+      )
+      asmt = factories.AssessmentFactory(
+          assessment_type=control.type,
+          test_plan_procedure=True,
+      )
+      factories.IssueTrackerIssueFactory(
+          issue_tracked_obj=asmt.audit,
+          enabled=True,
+      )
+      factories.IssueTrackerIssueFactory(
+          issue_tracked_obj=asmt,
+          issue_id=asmt_issue_id,
+      )
+
+    rev_c = self._build_revision_query(control).first()
+    with factories.single_commit():
+      snapshot = factories.SnapshotFactory(
+          parent=asmt.audit,
+          child_type=control.__class__.__name__,
+          child_id=control.id,
+          revision_id=rev_c.id,
+      )
+
+    response = self._map(snapshot, asmt)
+    self.assert201(response)
+
+    update_issue_mock.assert_called_once_with(
+        str(asmt_issue_id),
+        {
+            "comment": comment,
+        },
+    )
+
+  @mock.patch.object(settings, "ISSUE_TRACKER_ENABLED", True)
+  @mock.patch("ggrc.integrations.issues.Client.update_issue",
+              return_value=mock.MagicMock())
+  def test_snapshot_map_no_test_plan(self, update_issue_mock):
+    """Test no attempt to add comment if not linked to Issue Tracker issue."""
+    asmt_issue_id, control_test_plan = None, factories.random_str().strip()
+
+    with factories.single_commit():
+      control = factories.ControlFactory(
+          test_plan=control_test_plan,
+      )
+      asmt = factories.AssessmentFactory(
+          assessment_type=control.type,
+          test_plan_procedure=True,
+      )
+      factories.IssueTrackerIssueFactory(
+          issue_tracked_obj=asmt.audit,
+          enabled=True,
+      )
+      factories.IssueTrackerIssueFactory(
+          issue_tracked_obj=asmt,
+          issue_id=asmt_issue_id,
+      )
+
+    rev_c = self._build_revision_query(control).first()
+    with factories.single_commit():
+      snapshot = factories.SnapshotFactory(
+          parent=asmt.audit,
+          child_type=control.__class__.__name__,
+          child_id=control.id,
+          revision_id=rev_c.id,
+      )
+
+    response = self._map(snapshot, asmt)
+    self.assert201(response)
+
+    update_issue_mock.assert_not_called()
+
+  @mock.patch("ggrc.integrations.issues.Client.create_issue",
+              side_effect=[integrations_errors.HttpError(
+                data={"error": "com.google.apps.framework.request."
+                               "ForbiddenException: a@test.google.com "
+                               "[FULLY_TRUSTED_DEVICE] does not have "
+                               "permission to append to hotlist 4321"},
+                status=403)])
+  @mock.patch.object(settings, "ISSUE_TRACKER_ENABLED", True)
+  def test_no_permissions_hotlist(self, _):
+    """Test warning message if no permissions to Hotlist."""
+    with factories.single_commit():
+      audit = factories.AuditFactory()
+      factories.IssueTrackerIssueFactory(
+        enabled=True,
+        issue_tracked_obj=audit
+      )
+
+    issue_data = {"issue_id": None}
+    issue_tracker_attrs = self.post_request_payload_builder(issue_data)
+
+    response = self.api.post(all_models.Assessment, {
+      "assessment": {
+                "title": "asmt",
+                "audit": {"id": audit.id, "type": audit.type},
+                "issue_tracker": issue_tracker_attrs["issue_tracker"],
+      },
+    })
+
+    assert constants.HOTLIST_PERMISSIONS_ERROR in response.json.get(
+      "assessment", {}).get("issue_tracker", {}).get("_warnings", [])
+
 
 @mock.patch('ggrc.models.hooks.issue_tracker.'
             'assessment_integration.AssessmentTrackerHandler.'

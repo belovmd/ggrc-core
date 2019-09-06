@@ -10,6 +10,7 @@ from ggrc import db
 from ggrc import models
 from ggrc import settings
 
+from ggrc.integrations import constants
 from ggrc.integrations import integrations_errors
 from ggrc.integrations.synchronization_jobs.issue_sync_job import \
     ISSUE_STATUS_MAPPING
@@ -845,7 +846,7 @@ class TestDisabledIssueIntegration(ggrc.TestCase):
                   data={"error": "com.google.apps.framework.request."
                                  "ForbiddenException: a@test.google.com "
                                  "[FULLY_TRUSTED_DEVICE] does not have "
-                                 "permission to append to hotlist 22222"},
+                                 "permission to append to hotlist 4321"},
                   status=403)])
   @mock.patch.object(settings, "ISSUE_TRACKER_ENABLED", True)
   def test_no_permissions_hotlist(self, _):
@@ -868,9 +869,5 @@ class TestDisabledIssueIntegration(ggrc.TestCase):
         },
     })
 
-    expected_message = ("Ticket in issue tracker wasn't added to Hotlist. "
-                        "Please make sure that you have enough rights for the "
-                        "Hotlist and try again.")
-
-    assert expected_message in response.json.get("issue", {})\
-        .get("issue_tracker", {}).get("_warnings", [])
+    assert constants.HOTLIST_PERMISSIONS_ERROR in response.json.get(
+        "issue", {}).get("issue_tracker", {}).get("_warnings", [])
