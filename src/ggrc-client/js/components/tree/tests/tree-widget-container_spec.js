@@ -6,7 +6,10 @@
 import makeArray from 'can-util/js/make-array/make-array';
 import canList from 'can-list';
 import canMap from 'can-map';
-import {makeFakeInstance} from '../../../../js_specs/spec_helpers';
+import {
+  makeFakeInstance,
+  makeFakeModel,
+} from '../../../../js_specs/spec_helpers';
 import * as TreeViewUtils from '../../../plugins/utils/tree-view-utils';
 import * as WidgetsUtils from '../../../plugins/utils/widgets-utils';
 import * as AdvancedSearch from '../../../plugins/utils/advanced-search-utils';
@@ -19,6 +22,9 @@ import Relationship from '../../../models/service-models/relationship';
 import exportMessage from '../templates/export-message.stache';
 import QueryParser from '../../../generated/ggrc_filter_query_parser';
 import router from '../../../router';
+import Cacheable from '../../../models/cacheable';
+import Program from '../../../models/business-models/program';
+import Assessment from '../../../models/business-models/assessment';
 
 describe('tree-widget-container component', function () {
   let vm;
@@ -683,6 +689,157 @@ describe('tree-widget-container component', function () {
         'info',
         exportMessage,
         {data: true});
+    });
+  });
+
+  describe('setColumnsConfiguration() method', () => {
+    it('should call addServiceColumns() method', () => {
+      vm.attr('model', {
+        model_singular: 'test model',
+      });
+      spyOn(TreeViewUtils, 'getColumnsForModel')
+        .and.returnValue([]);
+      spyOn(vm, 'addServiceColumns');
+
+      vm.setColumnsConfiguration();
+
+      expect(vm.addServiceColumns).toHaveBeenCalled();
+    });
+  });
+
+  describe('onUpdateColumns() method', () => {
+    it('should call addServiceColumns() method', () => {
+      vm.attr('model', {
+        model_singular: 'test model',
+      });
+      spyOn(TreeViewUtils, 'setColumnsForModel')
+        .and.returnValue([]);
+      spyOn(vm, 'addServiceColumns');
+
+      vm.onUpdateColumns({});
+
+      expect(vm.addServiceColumns).toHaveBeenCalled();
+    });
+  });
+
+  describe('addServiceColumns() method', () => {
+    const columns = {};
+
+    beforeEach(() => {
+      columns.available = [{
+        name: 'col1',
+      }, {
+        name: 'col2',
+      }];
+      columns.selected = [{
+        name: 'col1',
+      }, {
+        name: 'col2',
+      }];
+
+      const fakeModel = makeFakeModel({
+        model: Cacheable,
+        staticProps: {
+          model_singular: 'Person',
+          tree_view_options: {
+            service_attr_list: [{
+              name: 'serviceCol1',
+            }],
+          },
+        },
+      });
+
+      vm.attr('model', fakeModel);
+    });
+
+    it('should work for Persons', () => {
+      vm.addServiceColumns(columns);
+
+      const expectedOutput = {
+        available: [{
+          name: 'col1',
+        }, {
+          name: 'col2',
+        }, {
+          name: 'serviceCol1',
+        }],
+        selected: [{
+          name: 'col1',
+        }, {
+          name: 'col2',
+        }, {
+          name: 'serviceCol1',
+        }],
+      };
+
+      expect(columns).toEqual(expectedOutput);
+    });
+
+    it('should not work for models except Person', () => {
+      const expectedOutput = {
+        available: [{
+          name: 'col1',
+        }, {
+          name: 'col2',
+        }],
+        selected: [{
+          name: 'col1',
+        }, {
+          name: 'col2',
+        }],
+      };
+
+      vm.attr('model', Assessment);
+      vm.addServiceColumns(columns);
+      expect(columns).toEqual(expectedOutput);
+
+      vm.attr('model', Program);
+      vm.addServiceColumns(columns);
+      expect(columns).toEqual(expectedOutput);
+    });
+
+    it('should sort columns by order', () => {
+      columns.available = [{
+        name: 'col1',
+      }, {
+        name: 'col2',
+        order: 2,
+      }];
+      columns.selected = [{
+        name: 'col1',
+      }, {
+        name: 'col2',
+        order: 2,
+      }];
+
+      vm.attr('model').tree_view_options.service_attr_list = [{
+        name: 'serviceCol1',
+        order: 1,
+      }];
+
+      const expectedOutput = {
+        available: [{
+          name: 'serviceCol1',
+          order: 1,
+        }, {
+          name: 'col2',
+          order: 2,
+        }, {
+          name: 'col1',
+        }],
+        selected: [{
+          name: 'serviceCol1',
+          order: 1,
+        }, {
+          name: 'col2',
+          order: 2,
+        }, {
+          name: 'col1',
+        }],
+      };
+
+      vm.addServiceColumns(columns);
+      expect(columns).toEqual(expectedOutput);
     });
   });
 });
