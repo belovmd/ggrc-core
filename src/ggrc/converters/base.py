@@ -3,12 +3,11 @@
 
 """Base objects for csv file converters."""
 
+import collections
 import logging
-from collections import defaultdict
 
-import sqlalchemy as sa
-from flask import g
 from google.appengine.ext import deferred
+import sqlalchemy as sa
 
 from ggrc import db
 from ggrc import login
@@ -33,7 +32,7 @@ class BaseConverter(object):
   """Base class for csv converters."""
   # pylint: disable=too-few-public-methods
   def __init__(self, ie_job):
-    self.new_objects = defaultdict(structures.CaseInsensitiveDict)
+    self.new_objects = collections.defaultdict(structures.CaseInsensitiveDict)
     self.shared_state = {}
     self.response_data = []
     self.cache_manager = cache_utils.get_cache_manager()
@@ -100,7 +99,7 @@ class ImportConverter(BaseConverter):
   ]
 
   def __init__(self, ie_job, dry_run=True, csv_data=None):
-    self.user = getattr(g, '_current_user', None)
+    self.user = login.get_current_user()
     self.dry_run = dry_run
     self.csv_data = csv_data or []
     self.indexer = get_indexer()
