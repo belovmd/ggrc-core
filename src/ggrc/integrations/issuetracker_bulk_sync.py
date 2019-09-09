@@ -87,6 +87,7 @@ class IssueTrackerBulkCreator(object):
 
     filename = request_data.get("mail_data", {}).get("filename", '')
     recipient = request_data.get("mail_data", {}).get("user_email", '')
+    recipient = recipient or getattr(login.get_current_user(), "email", "")
 
     try:
       issuetracked_info = []
