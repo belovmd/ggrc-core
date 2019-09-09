@@ -153,7 +153,7 @@ def get_csv_template(objects):
   ca_cache = {}
   for object_data in objects:
     class_name = object_data["object_name"]
-    template_ids = tuple(object_data.get("template_ids", []))
+    template_ids = tuple(object_data.get("template_ids") or [])
 
     object_class = EXPORTABLES_MAP[class_name]
     ignore_fields = IGNORE_FIELD_IN_TEMPLATE.get(class_name, [])

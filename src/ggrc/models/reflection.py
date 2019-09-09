@@ -430,7 +430,6 @@ class AttributeInfo(object):
       custom_attributes = ca_cache.get(object_name, [])
     else:
       custom_attributes = object_class.get_custom_attribute_definitions(fields)
-
     for attr in custom_attributes:
       description = attr.helptext or u""
       if (attr.attribute_type == attr.ValidTypes.DROPDOWN and

@@ -126,7 +126,6 @@ class BlockConverter(object):
                                           mixins.ExternalCustomAttributable)):
       return {}
 
-
     gca_prefix = reflection.AttributeInfo.CUSTOM_ATTR_PREFIX
     lca_prefix = reflection.AttributeInfo.OBJECT_CUSTOM_ATTR_PREFIX
 

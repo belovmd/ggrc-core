@@ -49,7 +49,6 @@ def get_object_column_definitions(object_class, fields=None,
   Returns:
     A dict of attribute definitions.
   """
-
   attributes = AttributeInfo.get_object_attr_definitions(
       object_class,
       ca_fields=fields,
