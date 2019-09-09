@@ -10,13 +10,16 @@ import collections
 import ddt
 import mock
 
-from ggrc import settings, models, db
-from ggrc.integrations import constants
-from ggrc.models import all_models
+from ggrc import db
+from ggrc import models
+from ggrc import settings
 from ggrc.converters import errors
 from ggrc.converters.handlers import issue_tracker
+from ggrc.integrations import constants
+from ggrc.integrations import issuetracker_bulk_sync
 from ggrc.integrations.constants import DEFAULT_ISSUETRACKER_VALUES as \
     default_values
+from ggrc.models import all_models
 
 from integration import ggrc
 from integration.ggrc.models import factories
@@ -1224,3 +1227,89 @@ class TestEnabledViaImport(TestIssueTrackedImport):
     self._check_csv_response(response, expected_messages)
     obj = all_models.Assessment.query.one()
     self.assertFalse(obj.issue_tracker["enabled"])
+
+
+@ddt.ddt
+@mock.patch("ggrc.integrations.issues.Client.create_issue")
+@mock.patch("ggrc.integrations.issues.Client.update_issue")
+class TestImportIssueTrackedNotif(ggrc.TestCase):
+  """Test cases for notifications during import of IssueTracked objects."""
+
+  def setUp(self):  # pylint: disable=missing-docstring
+    super(TestImportIssueTrackedNotif, self).setUp()
+    self.client.get("/login")
+    current_user = all_models.Person.query.filter_by(
+        email="user@example.com",
+    ).first()
+    self.current_user_email = current_user.email
+
+  @mock.patch.object(settings, "ISSUE_TRACKER_ENABLED", True)
+  def test_generate_it_issue_notif(self, *_):
+    """Test email is sent if issue in issuetracker is created during import."""
+    with factories.single_commit():
+      assessment = factories.AssessmentFactory()
+      factories.IssueTrackerIssueFactory(
+          issue_tracked_obj=assessment.audit,
+          enabled=True,
+      )
+
+    assessment_data = [
+        collections.OrderedDict([
+            ("object_type", "Assessment"),
+            ("Code*", assessment.slug),
+            ("Ticket Tracker Integration", "On"),
+        ]),
+    ]
+
+    with mock.patch(
+        "ggrc.notifications.common.send_email",
+    ) as mocked_send_email:
+      response = self.import_data(*assessment_data)
+
+    self._check_csv_response(response, {})
+    it_bulk_creator = issuetracker_bulk_sync.IssueTrackerBulkCreator
+    mocked_send_email.assert_called_with(
+        self.current_user_email,
+        it_bulk_creator.ISSUETRACKER_SYNC_TITLE,
+        settings.EMAIL_BULK_SYNC_SUCCEEDED.render(sync_data={
+            "title": it_bulk_creator.SUCCESS_TITLE.format(filename=""),
+            "email_text": it_bulk_creator.SUCCESS_TEXT,
+        }),
+    )
+
+  @mock.patch.object(settings, "ISSUE_TRACKER_ENABLED", True)
+  def test_update_it_issue_notif(self, *_):
+    """Test email is sent if issue in issuetracker is updated during import."""
+    with factories.single_commit():
+      assessment = factories.AssessmentFactory()
+      factories.IssueTrackerIssueFactory(
+          issue_tracked_obj=assessment.audit,
+          enabled=True,
+      )
+      factories.IssueTrackerIssueFactory(
+          issue_tracked_obj=assessment,
+          enabled=True,
+      )
+
+    assessment_data = [
+        collections.OrderedDict([
+            ("object_type", "Assessment"),
+            ("Code*", assessment.slug),
+        ]),
+    ]
+
+    with mock.patch(
+        "ggrc.notifications.common.send_email",
+    ) as mocked_send_email:
+      response = self.import_data(*assessment_data)
+
+    self._check_csv_response(response, {})
+    it_bulk_updater = issuetracker_bulk_sync.IssueTrackerBulkUpdater
+    mocked_send_email.assert_called_with(
+        self.current_user_email,
+        it_bulk_updater.ISSUETRACKER_SYNC_TITLE,
+        settings.EMAIL_BULK_SYNC_SUCCEEDED.render(sync_data={
+            "title": it_bulk_updater.SUCCESS_TITLE.format(filename=""),
+            "email_text": it_bulk_updater.SUCCESS_TEXT,
+        }),
+    )
