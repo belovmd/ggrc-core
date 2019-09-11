@@ -7,6 +7,7 @@ import loDebounce from 'lodash/debounce';
 import loGet from 'lodash/get';
 import loFindIndex from 'lodash/findIndex';
 import loSortBy from 'lodash/sortBy';
+import loIsEmpty from 'lodash/isEmpty';
 import makeArray from 'can-util/js/make-array/make-array';
 import canStache from 'can-stache';
 import canMap from 'can-map';
@@ -64,7 +65,7 @@ import * as businessModels from '../../models/business-models';
 import exportMessage from './templates/export-message.stache';
 import {isSnapshotType} from '../../plugins/utils/snapshot-utils';
 import pubSub from '../../pub-sub';
-import {concatFilters} from '../../plugins/utils/tree-view-utils';
+import {concatFilters} from '../../plugins/utils/query-api-utils';
 
 let viewModel = canMap.extend({
   define: {
@@ -148,14 +149,13 @@ let viewModel = canMap.extend({
   },
   canOpenInfoPin: true,
   pubSub,
-  advancedSearch: null,
-  currentFilter: '',
+  currentFilter: {},
   loadItems: function () {
     let modelName = this.attr('modelName');
     let pageInfo = this.attr('pageInfo');
     let sortingInfo = this.attr('sortingInfo');
     let parent = this.attr('parent_instance');
-    let filter = this.attr('currentFilter');
+    let filter = this.attr('currentFilter.filter');
     let page = {
       current: pageInfo.current,
       pageSize: pageInfo.pageSize,
@@ -164,7 +164,7 @@ let viewModel = canMap.extend({
         direction: sortingInfo.sortDirection,
       }],
     };
-    let request = this.attr('advancedSearch.request');
+    let request = this.attr('currentFilter.request');
     const stopFn = tracker.start(modelName,
       tracker.USER_JOURNEY_KEYS.TREEVIEW,
       tracker.USER_ACTIONS.TREEVIEW.TREE_VIEW_PAGE_LOADING(page.pageSize));
@@ -372,7 +372,8 @@ let viewModel = canMap.extend({
         self.attr('pageInfo.current', 1);
       }
       await self.loadItems();
-      if (self.attr('currentFilter')) {
+
+      if (!self.isCurrentFilterEmpty()) {
         _refreshCounts();
       } else {
         const countsName = self.attr('options.countsName');
@@ -490,8 +491,8 @@ let viewModel = canMap.extend({
   export() {
     let modelName = this.attr('modelName');
     let parent = this.attr('parent_instance');
-    let filter = this.attr('currentFilter');
-    let request = this.attr('advancedSearch.request');
+    let filter = this.attr('currentFilter.filter');
+    let request = this.attr('currentFilter.request');
     let loadSnapshots = this.attr('options.objectVersion');
     const operation = this.attr('options.megaRelated') ?
       getMegaObjectRelation(this.attr('options.widgetId')).relation :
@@ -560,6 +561,10 @@ let viewModel = canMap.extend({
       .always(function () {
         pinControl.setLoadingIndicator(componentSelector, false);
       });
+  },
+  isCurrentFilterEmpty() {
+    let currentFilter = this.attr('currentFilter').serialize();
+    return !currentFilter.filter && loIsEmpty(currentFilter.request);
   },
 });
 

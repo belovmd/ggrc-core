@@ -8,10 +8,8 @@
     <div class="flex-box tree-filter">
 
       <tree-view-filter
-        on:loadItems="loadItems"
-        on:onFilter="onFilter"
+        on:vm:onFilter="onFilter"
         currentFilter:to="currentFilter"
-        advancedSearch:to="advancedSearch"
         additionalFilter:from="options.additional_filter"
         widgetId:from="options.widgetId"
         columns:from="columns"
@@ -27,7 +25,7 @@
                   options:from="options"
                   model:from="model"
                   showedItems:from="showedItems"
-                  on:export="export()">
+                  on:vm:export="export()">
     </tree-actions>
 
     <tree-header selectedColumns:from="columns.selected"
@@ -36,8 +34,8 @@
                  disableConfiguration:from="columns.disableConfiguration"
                  sortingInfo:from="sortingInfo"
                  model:from="model"
-                 on:sort="onSort(scope.event)"
-                 on:updateColumns="onUpdateColumns(scope.event)">
+                 on:vm:sort="onSort(scope.event)"
+                 on:vm:updateColumns="onUpdateColumns(scope.event)">
     </tree-header>
 
   </div>

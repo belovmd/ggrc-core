@@ -16,12 +16,9 @@ import * as NotifierUtils from '../../../plugins/utils/notifiers-utils';
 import * as MegaObjectUtils from '../../../plugins/utils/mega-object-utils';
 import tracker from '../../../tracker';
 import {getComponentVM} from '../../../../js_specs/spec_helpers';
-import Component, {loadSavedSearch, filterParentItems} from '../tree-widget-container';
+import Component from '../tree-widget-container';
 import Relationship from '../../../models/service-models/relationship';
 import exportMessage from '../templates/export-message.stache';
-import QueryParser from '../../../generated/ggrc_filter_query_parser';
-import SavedSearch from '../../../models/service-models/saved-search';
-import * as CurrentPageUtils from '../../../plugins/utils/current-page-utils';
 import router from '../../../router';
 import Cacheable from '../../../models/cacheable';
 import Program from '../../../models/business-models/program';
@@ -88,11 +85,10 @@ describe('tree-widget-container component', function () {
       vm.attr('options', {
         parent_instance: parent,
       });
-      vm.attr('advancedSearch', {
+      vm.attr('currentFilter', {
         filter,
         request,
       });
-      vm.attr('currentFilter', filter);
 
       loadItems = vm.loadItems.bind(vm);
       spyOn(tracker, 'start').and.returnValue(() => {});
@@ -501,11 +497,10 @@ describe('tree-widget-container component', function () {
       vm.attr('options', {
         parent_instance: parent,
       });
-      vm.attr('advancedSearch', {
+      vm.attr('currentFilter', {
         filter,
         request,
       });
-      vm.attr('currentFilter', filter);
     });
 
     it('starts export correctly', () => {

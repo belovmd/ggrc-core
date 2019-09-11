@@ -340,6 +340,27 @@ function _processObjectsResponse(response) {
   }, []);
 }
 
+/**
+ * Concatenation active filters.
+ *
+ * @param {String} filter - Parsed filter string
+ * @param {Object} options - Filter parameters
+ * @return {string} - Result of concatenation filters.
+ * @private
+ */
+function concatFilters(filter, options) {
+  if (filter) {
+    filter = QueryParser.joinQueries(
+      filter,
+      options.query.attr(),
+      'AND');
+  } else if (options.query) {
+    filter = options.query;
+  }
+
+  return filter;
+}
+
 export {
   makeRelevantFilter,
   buildParam,
@@ -348,4 +369,5 @@ export {
   buildCountParams,
   loadObjectsByStubs,
   loadObjectsByTypes,
+  concatFilters,
 };

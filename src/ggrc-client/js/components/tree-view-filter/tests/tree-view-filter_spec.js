@@ -9,20 +9,21 @@ import {getComponentVM} from '../../../../js_specs/spec_helpers';
 import Component, {loadSavedSearch, filterParentItems} from '../tree-view-filter';
 import * as AdvancedSearch from '../../../plugins/utils/advanced-search-utils';
 import * as CurrentPageUtils from '../../../plugins/utils/current-page-utils';
+import * as StateUtils from '../../../plugins/utils/state-utils';
 import QueryParser from '../../../generated/ggrc_filter_query_parser';
-import Control from '../../../models/business-models/control';
 import SavedSearch from '../../../models/service-models/saved-search';
+import * as QueryApiUtils from '../../../plugins/utils/query-api-utils';
+import Control from '../../../models/business-models/control';
 
 describe('tree-view-filter component', () => {
   let viewModel;
 
   beforeAll(() => {
     viewModel = getComponentVM(Component);
-    viewModel.attr('model', Control);
   });
 
   describe('openAdvancedFilter() method', () => {
-    it('copies applied filter and mapping items', function () {
+    it('copies applied filter and mapping items', () => {
       let appliedFilterItems = new canList([
         AdvancedSearch.create.attribute(),
       ]);
@@ -44,7 +45,7 @@ describe('tree-view-filter component', () => {
         .toEqual(appliedMappingItems.attr());
     });
 
-    it('opens modal window', function () {
+    it('opens modal window', () => {
       viewModel.attr('advancedSearch.open', false);
 
       viewModel.openAdvancedFilter();
@@ -132,20 +133,20 @@ describe('tree-view-filter component', () => {
         filter: AdvancedSearch.create.attribute(),
       }),
     ]);
-    beforeEach(function () {
+    beforeEach(() => {
       viewModel.attr('advancedSearch.filterItems', filterItems);
       viewModel.attr('advancedSearch.mappingItems', mappingItems);
       viewModel.attr('advancedSearch.appliedFilterItems', canList());
       viewModel.attr('advancedSearch.appliedMappingItems', canList());
       spyOn(viewModel, 'onFilter');
       spyOn(AdvancedSearch, 'buildFilter')
-        .and.callFake(function (items, request) {
+        .and.callFake((items, request) => {
           request.push({name: 'item'});
         });
       spyOn(QueryParser, 'joinQueries');
     });
 
-    it('copies filter and mapping items to applied', function () {
+    it('copies filter and mapping items to applied', () => {
       viewModel.applyAdvancedFilters();
 
       expect(viewModel.attr('advancedSearch.appliedFilterItems').attr())
@@ -154,7 +155,7 @@ describe('tree-view-filter component', () => {
         .toEqual(mappingItems.attr());
     });
 
-    it('initializes advancedSearch.filter property', function () {
+    it('initializes advancedSearch.filter property', () => {
       QueryParser.joinQueries.and.returnValue({
         name: 'test',
       });
@@ -165,7 +166,7 @@ describe('tree-view-filter component', () => {
       expect(viewModel.attr('advancedSearch.filter.name')).toBe('test');
     });
 
-    it('initializes advancedSearch.request property', function () {
+    it('initializes advancedSearch.request property', () => {
       viewModel.attr('advancedSearch.request', canList());
 
 
@@ -174,7 +175,7 @@ describe('tree-view-filter component', () => {
       expect(viewModel.attr('advancedSearch.request.length')).toBe(3);
     });
 
-    it('closes modal window', function () {
+    it('closes modal window', () => {
       viewModel.attr('advancedSearch.open', true);
 
       viewModel.applyAdvancedFilters();
@@ -182,7 +183,7 @@ describe('tree-view-filter component', () => {
       expect(viewModel.attr('advancedSearch.open')).toBe(false);
     });
 
-    it('calls onFilter() method', function () {
+    it('calls onFilter() method', () => {
       viewModel.applyAdvancedFilters();
 
       expect(viewModel.onFilter).toHaveBeenCalled();
@@ -190,11 +191,11 @@ describe('tree-view-filter component', () => {
   });
 
   describe('removeAdvancedFilters() method', () => {
-    beforeEach(function () {
+    beforeAll(() => {
       spyOn(viewModel, 'onFilter');
     });
 
-    it('removes applied filter and mapping items', function () {
+    it('removes applied filter and mapping items', () => {
       viewModel.attr('advancedSearch.appliedFilterItems', new canList([
         {title: 'item'},
       ]));
@@ -210,31 +211,28 @@ describe('tree-view-filter component', () => {
         .toBe(0);
     });
 
-    it('cleans advancedSearch.filter property', function () {
+    it('cleans advancedSearch.filter property', () => {
       viewModel.attr('advancedSearch.filter', {});
-
       viewModel.removeAdvancedFilters();
 
       expect(viewModel.attr('advancedSearch.filter')).toBe(null);
     });
 
-    it('closes modal window', function () {
+    it('closes modal window', () => {
       viewModel.attr('advancedSearch.open', true);
-
       viewModel.removeAdvancedFilters();
 
       expect(viewModel.attr('advancedSearch.open')).toBe(false);
     });
 
-    it('calls onFilter() method', function () {
+    it('calls onFilter() method', () => {
       viewModel.removeAdvancedFilters();
 
       expect(viewModel.onFilter).toHaveBeenCalled();
     });
 
-    it('resets advancedSearch.request list', function () {
+    it('resets advancedSearch.request list', () => {
       viewModel.attr('advancedSearch.request', new canList([{data: 'test'}]));
-
       viewModel.removeAdvancedFilters();
 
       expect(viewModel.attr('advancedSearch.request.length')).toBe(0);
@@ -242,7 +240,7 @@ describe('tree-view-filter component', () => {
   });
 
   describe('resetAdvancedFilters() method', () => {
-    it('resets filter items', function () {
+    it('resets filter items', () => {
       viewModel.attr('advancedSearch.filterItems', new canList([
         {title: 'item'},
       ]));
@@ -252,7 +250,7 @@ describe('tree-view-filter component', () => {
       expect(viewModel.attr('advancedSearch.filterItems.length')).toBe(0);
     });
 
-    it('resets mapping items', function () {
+    it('resets mapping items', () => {
       viewModel.attr('advancedSearch.mappingItems', new canList([
         {title: 'item'},
       ]));
@@ -260,6 +258,57 @@ describe('tree-view-filter component', () => {
       viewModel.resetAdvancedFilters();
 
       expect(viewModel.attr('advancedSearch.mappingItems.length')).toBe(0);
+    });
+  });
+
+  describe('treeFilterReady() method', () => {
+    beforeEach(() => {
+      viewModel.attr('shouldWaitForFilters', true);
+      viewModel.attr('filtersReady', new Set());
+      viewModel.attr('model', Control);
+      spyOn(viewModel, 'onFilter');
+    });
+
+    it('should NOT call "onFilter" method after 1 call', () => {
+      spyOn(StateUtils, 'hasFilter').and.returnValue(true);
+      viewModel.treeFilterReady({filterName: 'some filter #1'});
+      expect(viewModel.onFilter).not.toHaveBeenCalled();
+    });
+
+    it('should call "onFilter" method when filterNames are NOT ' +
+    'uniq after 2 calls', () => {
+      spyOn(StateUtils, 'hasFilter').and.returnValue(true);
+      viewModel.treeFilterReady({filterName: 'some filter #1'});
+      expect(viewModel.onFilter).not.toHaveBeenCalled();
+      viewModel.treeFilterReady({filterName: 'some filter #1'});
+      expect(viewModel.onFilter).not.toHaveBeenCalled();
+    });
+
+    it('should call "onFilter" method when filterNames are uniq after 2 calls',
+      () => {
+        spyOn(StateUtils, 'hasFilter').and.returnValue(true);
+        viewModel.treeFilterReady({filterName: 'some filter #1'});
+        expect(viewModel.onFilter).not.toHaveBeenCalled();
+        viewModel.treeFilterReady({filterName: 'some filter #2'});
+        expect(viewModel.onFilter).toHaveBeenCalled();
+      }
+    );
+
+    it('should NOT call "onFilter" method when filterNames are ' +
+    'uniq after 2 calls, but shouldWaitForFilters is false', () => {
+      spyOn(StateUtils, 'hasFilter').and.returnValue(true);
+      viewModel.attr('shouldWaitForFilters', false);
+      viewModel.treeFilterReady({filterName: 'some filter #1'});
+      expect(viewModel.onFilter).not.toHaveBeenCalled();
+      viewModel.treeFilterReady({filterName: 'some filter #2'});
+      expect(viewModel.onFilter).not.toHaveBeenCalled();
+    });
+
+    it('should call "onFilter" method after 1 call when tree view ' +
+    'does NOT have status filter', () => {
+      spyOn(StateUtils, 'hasFilter').and.returnValue(false);
+      viewModel.treeFilterReady({filterName: 'some filter #1'});
+      expect(viewModel.onFilter).toHaveBeenCalled();
     });
   });
 
@@ -305,6 +354,142 @@ describe('tree-view-filter component', () => {
       method(new canMap(selectedSavedSearch));
       expect(viewModel.attr('appliedSavedSearch').serialize())
         .toEqual(selectedSavedSearch);
+    });
+  });
+
+  describe('searchQueryChanged() method', () => {
+    let method;
+
+    beforeAll(() => {
+      method = viewModel.searchQueryChanged.bind(viewModel);
+      spyOn(viewModel, 'updateCurrentFilter');
+    });
+
+    it('should add filter because "filters" doesn\'t contain filter', () => {
+      viewModel.attr('filters', []);
+
+      const filter = {
+        name: 'my new filter',
+        query: {left: 'title', op: {name: '~'}, right: 'my title'},
+      };
+
+      method(filter);
+      expect(viewModel.attr('filters')[0].serialize()).toEqual(filter);
+    });
+
+    it('should update filter because "filters" contains that one', () => {
+      viewModel.attr('filters', [{
+        name: 'my new filter',
+        query: null,
+      }]);
+
+      const filter = {
+        name: 'my new filter',
+        query: {left: 'title', op: {name: '~'}, right: 'my title'},
+      };
+
+      method(filter);
+      expect(viewModel.attr('filters')[0].serialize()).toEqual(filter);
+    });
+
+    it('should call "updateCurrentFilter" method', () => {
+      method({name: 'my name', query: null});
+      expect(viewModel.updateCurrentFilter).toHaveBeenCalled();
+    });
+  });
+
+  describe('updateCurrentFilter() method', () => {
+    let method;
+
+    beforeAll(() => {
+      method = viewModel.updateCurrentFilter.bind(viewModel);
+    });
+
+    beforeEach(() => {
+      viewModel.attr('currentFilter', null);
+    });
+
+    it('should set "currentFilter" from advancedSearch filter ' +
+    'when it isn\t empty', () => {
+      viewModel.attr('additionalFilter', 'some filter');
+
+      const advancedSearch = {
+        filter: {
+          expression: {
+            left: 'Status',
+            op: {name: 'IN'},
+            right: ['Active'],
+          },
+        },
+        request: [{query: null}],
+      };
+
+      viewModel.attr('advancedSearch', advancedSearch);
+
+      method();
+      expect(viewModel.attr('currentFilter.filter').serialize())
+        .toEqual(advancedSearch.filter);
+      expect(viewModel.attr('currentFilter.request').serialize())
+        .toEqual(advancedSearch.request);
+    });
+
+    it('should set "currentFilter" from additionalFilter ' +
+    'when advancedSearch filter is empty', () => {
+      viewModel.attr('filters', []);
+      viewModel.attr('additionalFilter', 'some filter');
+
+      const advancedSearch = {
+        filter: null,
+        request: [{query: null}],
+      };
+
+      viewModel.attr('advancedSearch', advancedSearch);
+
+      spyOn(QueryParser, 'parse').and.returnValue({
+        query: 'some additional query',
+      });
+
+      method();
+
+      expect(viewModel.attr('currentFilter.filter').serialize())
+        .toEqual({
+          query: 'some additional query',
+        });
+      expect(viewModel.attr('currentFilter.request').serialize())
+        .toEqual(advancedSearch.request);
+    });
+
+    it('should call "QueryParser.parse" when additionalFilter is NOT empty' +
+    'advanced advancedSearch filter is empty', () => {
+      viewModel.attr('additionalFilter', 'some additional query');
+      viewModel.attr('advancedSearch', null);
+
+      spyOn(QueryParser, 'parse');
+      method();
+
+      expect(QueryParser.parse).toHaveBeenCalledWith(
+        viewModel.attr('additionalFilter')
+      );
+    });
+
+    it('should call "concatFilters" util when additionalFilter and "filter"' +
+    'are NOT empty', () => {
+      viewModel.attr('filters', [{
+        name: 'myFilter',
+        query: {left: 'title', op: {name: '~'}, right: 'my title'},
+      }]);
+
+      viewModel.attr('additionalFilter', 'some additional query');
+      viewModel.attr('advancedSearch', null);
+
+      spyOn(QueryParser, 'parse').and.returnValue({
+        query: 'some additional query',
+      });
+      spyOn(QueryApiUtils, 'concatFilters');
+
+      method();
+
+      expect(QueryApiUtils.concatFilters).toHaveBeenCalled();
     });
   });
 });

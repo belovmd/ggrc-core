@@ -15,10 +15,6 @@ import {
 
 let viewModel = canMap.extend({
   disabled: false,
-  options: {
-    name: 'status',
-    query: null,
-  },
   filterStates: [],
   widgetId: null,
   modelName: null,
@@ -88,7 +84,12 @@ let viewModel = canMap.extend({
     let query = (states.length && loDifference(allStates, states).length) ?
       StateUtils.buildStatusFilter(states, modelName) :
       null;
-    this.attr('options.query', query);
+
+    this.dispatch({
+      type: 'searchQueryChanged',
+      name: 'status',
+      query,
+    });
   },
   selectItems(event) {
     let selectedStates = event.selected.map((state) => state.value);
@@ -96,6 +97,9 @@ let viewModel = canMap.extend({
     this.buildSearchQuery(selectedStates);
     this.saveTreeStates(selectedStates);
     this.setStatesRoute(selectedStates);
+    this.filter();
+  },
+  filter() {
     this.dispatch('filter');
   },
 });
@@ -105,15 +109,10 @@ export default canComponent.extend({
   leakScope: true,
   viewModel: viewModel,
   events: {
-    init() {
+    inserted() {
       let vm = this.viewModel;
 
       vm.attr('router', router);
-
-      if (vm.registerFilter) {
-        let options = vm.attr('options');
-        vm.registerFilter(options);
-      }
 
       // Setup key-value pair items for dropdown
       let filterStates = vm.attr('allStates').map((state) => {
@@ -127,6 +126,11 @@ export default canComponent.extend({
       vm.buildSearchQuery(defaultStates);
       vm.setStatesDropdown(defaultStates);
       vm.setStatesRoute(defaultStates);
+
+      vm.dispatch({
+        type: 'treeFilterReady',
+        filterName: 'tree-status-filter',
+      });
     },
     '{viewModel} disabled'() {
       if (this.viewModel.attr('disabled')) {
@@ -151,7 +155,7 @@ export default canComponent.extend({
       if (isCurrent && isEnabled && isChanged) {
         this.viewModel.buildSearchQuery(newStatuses);
         this.viewModel.setStatesDropdown(newStatuses);
-        this.viewModel.dispatch('filter');
+        this.viewModel.filter();
       }
     },
     '{viewModel.router} widget'([router]) {

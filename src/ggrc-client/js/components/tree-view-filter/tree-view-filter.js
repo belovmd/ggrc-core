@@ -9,7 +9,7 @@ import canMap from 'can-map';
 import canComponent from 'can-component';
 import makeArray from 'can-util/js/make-array/make-array';
 import template from './templates/tree-view-filter.stache';
-import * as StateUtils from '../../plugins/utils/state-utils';
+import {hasFilter} from '../../plugins/utils/state-utils';
 import QueryParser from '../../generated/ggrc_filter_query_parser';
 import * as AdvancedSearch from '../../plugins/utils/advanced-search-utils';
 import SavedSearch from '../../models/service-models/saved-search';
@@ -21,16 +21,18 @@ import {
   isAllObjects,
   isMyWork,
 } from '../../plugins/utils/current-page-utils';
-import {concatFilters} from '../../plugins/utils/tree-view-utils';
+import {concatFilters} from '../../plugins/utils/query-api-utils';
 
 import '../tree/tree-filter-input';
 import '../tree/tree-status-filter';
 import '../advanced-search/advanced-search-mapping-container';
 import '../advanced-search/advanced-search-filter-container';
 import '../dropdown/multiselect-dropdown';
-import '../dropdown/dropdown-wrapper';
 import '../saved-search/saved-search-list/saved-search-list';
 import '../saved-search/create-saved-search/create-saved-search';
+import '../simple-modal/simple-modal';
+
+const EXPECTED_FILTERS_COUNT = 2;
 
 export default canComponent.extend({
   tag: 'tree-view-filter',
@@ -39,15 +41,13 @@ export default canComponent.extend({
   viewModel: canMap.extend({
     define: {
       modelName: {
-        type: String,
         get() {
           return this.attr('model').model_singular;
         },
       },
       statusFilterVisible: {
-        type: Boolean,
         get() {
-          return StateUtils.hasFilter(this.attr('modelName'));
+          return hasFilter(this.attr('modelName'));
         },
       },
       isSavedSearchShown: {
@@ -86,6 +86,11 @@ export default canComponent.extend({
           return value;
         },
       },
+      filtersReady: {
+        value() {
+          return new Set();
+        },
+      },
     },
     pubSub,
     router,
@@ -96,7 +101,8 @@ export default canComponent.extend({
     columns: null,
     widgetId: null,
     additionalFilter: null,
-    currentFilter: '',
+    currentFilter: {},
+    shouldWaitForFilters: true,
     advancedSearch: {
       open: false,
       filter: null,
@@ -109,8 +115,34 @@ export default canComponent.extend({
       appliedParentItems: canList(),
       parentInstance: null,
     },
-    registerFilter(option) {
-      this.attr('filters').push(option);
+    searchQueryChanged({name, query}) {
+      const filter = makeArray(this.attr('filters'))
+        .find((item) => item.name === name);
+      if (filter) {
+        filter.attr('query', query);
+      } else {
+        this.attr('filters').push(new canMap({name, query}));
+      }
+
+      this.updateCurrentFilter();
+    },
+    treeFilterReady({filterName}) {
+      if (!this.attr('shouldWaitForFilters')) {
+        return;
+      }
+
+      const filtersReady = this.attr('filtersReady');
+
+      // tree-status-filter is hidden. Mark it as already ready
+      if (!this.attr('statusFilterVisible')) {
+        filtersReady.add('tree-status-filter');
+      }
+
+      filtersReady.add(filterName);
+
+      if (filtersReady.size === EXPECTED_FILTERS_COUNT) {
+        this.onFilter();
+      }
     },
     onFilter() {
       this.dispatch('onFilter');
@@ -209,10 +241,14 @@ export default canComponent.extend({
     updateCurrentFilter() {
       const filters = makeArray(this.attr('filters'));
       let additionalFilter = this.attr('additionalFilter');
-      let additionalSearchFilter = this.attr('advancedSearch.filter');
+      let advancedSearchFilter = this.attr('advancedSearch.filter');
+      let advancedSearchRequest = this.attr('advancedSearch.request');
 
-      if (additionalSearchFilter && additionalSearchFilter.serialize) {
-        this.attr('currentFilter', additionalSearchFilter.serialize());
+      if (advancedSearchFilter && advancedSearchFilter.serialize) {
+        this.attr('currentFilter', {
+          filter: advancedSearchFilter.serialize(),
+          request: advancedSearchRequest,
+        });
         return;
       }
 
@@ -220,19 +256,21 @@ export default canComponent.extend({
         additionalFilter = QueryParser.parse(additionalFilter);
       }
 
-      const currentFilter = filters.filter(function (options) {
-        return options.query;
-      }).reduce(concatFilters, additionalFilter);
+      const filter = filters
+        .filter((options) => options.query)
+        .reduce(concatFilters, additionalFilter);
 
-      this.attr('currentFilter', currentFilter);
+      this.attr('currentFilter', {
+        filter,
+        request: advancedSearchRequest,
+      });
     },
   }),
   events: {
     inserted() {
       if (isLoadSavedSearch(this.viewModel)) {
         loadSavedSearch(this.viewModel);
-      } else {
-        this.viewModel.dispatch('loadItems');
+        this.viewModel.attr('shouldWaitForFilters', false);
       }
     },
     '{viewModel.advancedSearch} selectedSavedSearch'() {
@@ -253,9 +291,6 @@ export default canComponent.extend({
       }
     },
     '{viewModel.advancedSearch} change'() {
-      this.viewModel.updateCurrentFilter();
-    },
-    '{viewModel.filters} change'() {
       this.viewModel.updateCurrentFilter();
     },
     '{pubSub} savedSearchSelected'(pubSub, ev) {

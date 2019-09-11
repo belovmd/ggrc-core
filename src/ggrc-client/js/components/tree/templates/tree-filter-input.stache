@@ -28,7 +28,7 @@
 <div class="flex-box tree-filter__actions">
   <button type="submit"
           class="btn btn-small btn-lightBlue"
-          on:el:click="submit()"
+          on:el:click="onFilter"
           {{#disabled}}disabled{{/disabled}}>
     Search
   </button>

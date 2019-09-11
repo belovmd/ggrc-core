@@ -4,26 +4,28 @@
 }}
 
 <tree-filter-input class="flex-size-1"
-  registerFilter:from="@registerFilter"
-  on:submit="onFilter()"
-  on:openAdvanced="openAdvancedFilter()"
-  on:removeAdvanced="removeAdvancedFilters()"
+  on:vm:searchQueryChanged="searchQueryChanged(scope.event)"
+  on:vm:filter="onFilter()"
+  on:vm:treeFilterReady="treeFilterReady(scope.event)"
+  on:vm:openAdvanced="openAdvancedFilter()"
+  on:vm:removeAdvanced="removeAdvancedFilters()"
   showAdvanced:from="statusFilterVisible"
-  disabled:from="advancedSearch.filter">
-</tree-filter-input>
+  disabled:from="advancedSearch.filter"
+/>
 
 {{#if statusFilterVisible}}
   <tree-status-filter class="flex-size-1"
     widgetId:from="widgetId"
     modelName:from="modelName"
-    registerFilter:from="@registerFilter"
-    on:filter="onFilter"
+    on:vm:searchQueryChanged="searchQueryChanged(scope.event)"
+    on:vm:treeFilterReady="treeFilterReady(scope.event)"
+    on:vm:filter="onFilter()"
     disabled:from="advancedSearch.filter">
       <multiselect-dropdown options:from="filterStates"
         placeholder:from="'Filter by State'"
         disabled:from="advancedSearch.filter"
-        on:dropdownClose="selectItems(scope.event)">
-      </multiselect-dropdown>
+        on:vm:dropdownClose="selectItems(scope.event)"
+      />
       {{#if statusTooltipVisible}}
         <i class="fa fa-question-circle"
           rel="tooltip"
@@ -34,7 +36,7 @@
 {{/if}}
 
 <simple-modal state:from="advancedSearch"
-              on:hide="searchModalClosed"
+              on:vm:hide="searchModalClosed"
               modalTitle:from="'{{model.title_singular}} Advanced Search'"
               extraCssClass:from="'advanced-search'">
 
@@ -47,17 +49,18 @@
         selectedSearchId:from="selectedSavedSearchId"
         searchType:from="'AdvancedSearch'"
         advancedSearch:from="advancedSearch"
-      ></saved-search-list>
+      />
     </aside>
   {{/if}}
   <main>
   <div class="advanced-search__content">
     <div class="simple-modal__body">
-      <advanced-search-filter-container items:bind="advancedSearch.filterItems"
-                                        availableAttributes:from="columns.available"
-                                        modelName:from="modelName"
-                                        on:el:enter="applyAdvancedFilters()">
-      </advanced-search-filter-container>
+      <advanced-search-filter-container
+        items:bind="advancedSearch.filterItems"
+        availableAttributes:from="columns.available"
+        modelName:from="modelName"
+        on:el:enter="applyAdvancedFilters()"
+      />
     </div>
     <div class="advanced-search__mapping-header">
       <h4>Filter by Mapping</h4>
@@ -74,10 +77,11 @@
           <h6>Mapped to {{value.type}}:</h6><span>{{value.title}}</span>
         </div>
       {{/advancedSearch.parentItems}}
-      <advanced-search-mapping-container items:bind="advancedSearch.mappingItems"
-                                          modelName:from="modelName"
-                                          on:el:enter="applyAdvancedFilters()">
-      </advanced-search-mapping-container>
+      <advanced-search-mapping-container
+        items:bind="advancedSearch.mappingItems"
+        modelName:from="modelName"
+        on:el:enter="applyAdvancedFilters()"
+      />
     </div>
   </div>
   <div class="simple-modal__footer">
@@ -89,7 +93,7 @@
         parentItems:from="advancedSearch.parentItems"
         parentInstance:from="advancedSearch.parentInstance"
         objectType:from="modelName"
-      ></create-saved-search>
+      />
     {{/if}}
     <div class="advanced-search__controls">
       <button type="reset" class="btn btn-white" on:el:click="resetAdvancedFilters()">Reset to Defaults</button>

@@ -26,21 +26,8 @@ let viewModel = canMap.extend({
   },
   disabled: false,
   showAdvanced: false,
-  options: {
-    query: null,
-  },
-  init: function () {
-    let options = this.attr('options');
-    options.attr('name', 'custom');
-
-    if (this.registerFilter) {
-      this.registerFilter(options);
-    }
-
-    this.setupFilterFromUrl();
-  },
-  submit: function () {
-    this.dispatch('submit');
+  onFilter: function () {
+    this.dispatch('filter');
   },
   onFilterChange: function (newValue) {
     let filter = QueryParser.parse(newValue);
@@ -50,7 +37,11 @@ let viewModel = canMap.extend({
       filter.expression.op.name !== 'exclude_text_search';
     this.attr('isExpression', isExpression);
 
-    this.attr('options.query', newValue.length ? filter : null);
+    this.dispatch({
+      type: 'searchQueryChanged',
+      name: 'custom',
+      query: newValue.length ? filter : null,
+    });
   },
   setupFilterFromUrl() {
     this.attr('filter', router.attr('query'));
@@ -69,11 +60,18 @@ export default canComponent.extend({
   leakScope: true,
   viewModel,
   events: {
+    inserted() {
+      this.viewModel.setupFilterFromUrl();
+      this.viewModel.dispatch({
+        type: 'treeFilterReady',
+        filterName: 'tree-filter-input',
+      });
+    },
     'input keyup': function (el, ev) {
       this.viewModel.onFilterChange(el.val());
 
       if (ev.keyCode === 13) {
-        this.viewModel.submit();
+        this.viewModel.onFilter();
       }
       ev.stopPropagation();
     },

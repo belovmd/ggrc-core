@@ -14,14 +14,25 @@ describe('tree-filter-input component', () => {
     viewModel = getComponentVM(Component);
   });
 
-  describe('init() method', () => {
+  describe('inserted() event', () => {
+    let insertedEvent;
     beforeEach(() => {
       spyOn(viewModel, 'setupFilterFromUrl');
+      spyOn(viewModel, 'dispatch');
+      insertedEvent = Component.prototype.events.inserted.bind({viewModel});
     });
 
     it('setups filter for component based on url', () => {
-      viewModel.init();
+      insertedEvent();
       expect(viewModel.setupFilterFromUrl).toHaveBeenCalled();
+    });
+
+    it('dispatch "treeFilterReady" event', () => {
+      insertedEvent();
+      expect(viewModel.dispatch).toHaveBeenCalledWith({
+        type: 'treeFilterReady',
+        filterName: 'tree-filter-input',
+      });
     });
   });
 
