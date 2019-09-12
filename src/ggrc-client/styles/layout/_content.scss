@@ -24,6 +24,8 @@
 .object-area {
   background: $contentBgnd;
   height: 100%;
+  display: flex;
+  flex-direction: column;
 
   &.import-area {
     margin-left: 0;
@@ -61,13 +63,16 @@
     margin: 0 40px;
   }
   &.widget-area,
-  &.widget-area .widget,
-  &.widget-area .widget .content
-  {
-    height: 100%;
+  &.widget-area .widget .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
-
-  &.widget-area .widget .header + .content {
-    height: calc(100% - 30px);
+  &.widget-area .widget {
+    flex: 1;
+  }
+  // dashboard with iframe
+  &.widget-area #dashboard .content {
+    height: 100%;
   }
 }
