@@ -5,7 +5,8 @@
 
 """Test Assessment Template import."""
 
-from collections import OrderedDict
+import collections
+
 from ggrc import models
 from ggrc.converters import errors
 from ggrc.utils import errors as common_errors
@@ -23,104 +24,110 @@ class TestAssessmentTemplatesImport(TestCase):
 
   def test_valid_import(self):
     """Test valid import."""
-    response = self.import_file("assessment_template_no_warnings.csv")
+    with factories.single_commit():
+      audit_slug = factories.AuditFactory().slug
+    asmt_tmpl_data = [
+        collections.OrderedDict([
+            ("object_type", "Assessment Template"),
+            ("Code*", ""),
+            ("Audit*", audit_slug),
+            ("Default Assignees*", "Auditors"),
+            ("Default Assessment Type", "Control"),
+            ("Title", "Template 1-Created"),
+        ])
+    ]
+
     expected_messages = {
         "Assessment Template": {
-            "rows": 4,
+            "rows": 1,
+            "created": 1,
             "updated": 0,
-            "created": 4,
-        }
+        },
     }
+
+    response = self.import_data(*asmt_tmpl_data)
     self._check_csv_response(response, expected_messages)
 
-    people = {p.email: p.id for p in models.Person.query.all()}
-    template = models.AssessmentTemplate.query \
-        .filter(models.AssessmentTemplate.slug == "T-2") \
-        .first()
-
-    self.assertEqual(
-        template.default_people["verifiers"],
-        [people["user3@a.com"], people["user1@a.com"]],
-    )
-    self.assertEqual(
-        template.procedure_description,
-        "Some test plan"
-    )
+    tmpl = models.AssessmentTemplate.query.first()
+    self.assertEqual(tmpl.default_people["assignees"], "Auditors")
+    self.assertEqual(tmpl.template_object_type, "Control")
+    self.assertEqual(tmpl.title, "Template 1-Created")
 
   def test_modify_over_import(self):
     """Test import modifies Assessment Template and does not fail."""
-    self.import_file("assessment_template_no_warnings.csv")
-    slug = "T-1"
-    response = self.import_data(OrderedDict([
-        ("object_type", "Assessment_Template"),
-        ("Code*", slug),
-        ("Audit*", "Audit"),
-        ("Title", "Title"),
-        ("Default Assessment Type", 'Control'),
-    ]))
-    template = models.AssessmentTemplate.query \
-        .filter(models.AssessmentTemplate.slug == slug) \
-        .first()
+    asmt_tmpl = factories.AssessmentTemplateFactory(
+        title="template new",
+        template_object_type="Objective",
+    )
+    slug = asmt_tmpl.slug
+    asmt_tmpl_data = [
+        collections.OrderedDict([
+            ("object_type", "Assessment Template"),
+            ("Code*", slug),
+            ("Default Assessment Type", "Control"),
+            ("Title", "template upd"),
+        ])
+    ]
+    response = self.import_data(*asmt_tmpl_data)
     self._check_csv_response(response, {})
-    self.assertEqual(template.default_people['verifiers'], 'Auditors')
-    self.assertEqual(template.default_people['assignees'], 'Admin')
+    template = models.AssessmentTemplate.query.filter(
+        models.AssessmentTemplate.slug == slug).first()
+
+    self.assertEqual(template.title, 'template upd')
+    self.assertEqual(template.template_object_type, 'Control')
 
   def test_modify_persons_over_import(self):
     """Test import modifies Assessment Template and does not fail."""
-    self.import_file("assessment_template_no_warnings.csv")
-    slug = "T-1"
-    response = self.import_data(OrderedDict([
-        ("object_type", "Assessment_Template"),
-        ("Code*", slug),
-        ("Audit*", "Audit"),
-        ("Title", "Title"),
-        ("Default Assessment Type", "Control"),
-        ("Default Verifiers", "Secondary Contacts")
-    ]))
+    assessment_template = factories.AssessmentTemplateFactory(
+        default_people={"assignees": "Admin", "verifiers": "Admin"}
+    )
+    slug = assessment_template.slug
+    asmt_tmpl_data = [
+        collections.OrderedDict([
+            ("object_type", "Assessment Template"),
+            ("Code*", slug),
+            ("Default Assignees*", "Auditors"),
+            ("Default Assessment Type", "Control"),
+            ("Title", "Template 1"),
+            ("Default Verifiers", "Secondary Contacts"),
+        ])
+    ]
+    response = self.import_data(*asmt_tmpl_data)
     template = models.AssessmentTemplate.query \
         .filter(models.AssessmentTemplate.slug == slug) \
         .first()
     self._check_csv_response(response, {})
     self.assertEqual(template.default_people["verifiers"],
                      "Secondary Contacts")
+    self.assertEqual(template.default_people["assignees"], "Auditors")
 
   def test_invalid_import(self):
     """Test invalid import."""
-    data = "assessment_template_with_warnings_and_errors.csv"
-    response = self.import_file(data, safe=False)
+    audit = factories.AuditFactory()
+    assessment_data_template = [
+        collections.OrderedDict([
+            ("object_type", "Assessment Template"),
+            ("Code*", ""),
+            ("Audit*", audit.slug),
+            ("Default Assignees*", "Auditors"),
+            ("Default Verifiers", "user4@a.com"),
+            ("Default Assessment Type", "Control"),
+            ("Title", "Template 1"),
+        ])
+    ]
+    response = self.import_data(*assessment_data_template)
 
     expected_messages = {
         "Assessment Template": {
-            "rows": 7,
+            "rows": 1,
             "updated": 0,
-            "created": 6,
+            "created": 1,
             "row_warnings": {
                 errors.UNKNOWN_USER_WARNING.format(
-                    line=12,
+                    line=3,
                     column_name="Default Verifiers",
-                    email="user3@a.com",
+                    email="user4@a.com",
                 ),
-                errors.UNKNOWN_USER_WARNING.format(
-                    line=12,
-                    column_name="Default Verifiers",
-                    email="user1@a.com"
-                ),
-                errors.WRONG_VALUE.format(
-                    line=16,
-                    column_name="Custom Attributes"
-                ),
-                errors.WRONG_VALUE.format(
-                    line=17,
-                    column_name="Custom Attributes"
-                )
-            },
-            "row_errors": {
-                errors.ERROR_TEMPLATE.format(
-                    line=15,
-                    message=common_errors.DUPLICATE_RESERVED_NAME.format(
-                        attr_name="ASSESSMENT PROCEDURE"
-                    ),
-                )
             },
         }
     }
@@ -136,7 +143,7 @@ class TestAssessmentTemplatesImport(TestCase):
       )
       audit = factories.AuditFactory()
 
-    response = self.import_data(OrderedDict([
+    response = self.import_data(collections.OrderedDict([
         ("object_type", "Assessment_Template"),
         ("Code*", ""),
         ("Audit*", audit.slug),
@@ -175,7 +182,7 @@ class TestAssessmentTemplatesImport(TestCase):
       )
       audit = factories.AuditFactory()
 
-    response = self.import_data(OrderedDict([
+    response = self.import_data(collections.OrderedDict([
         ("object_type", "Assessment_Template"),
         ("Code*", ""),
         ("Audit*", audit.slug),
