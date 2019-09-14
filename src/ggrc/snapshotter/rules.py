@@ -24,6 +24,7 @@ class Types(object):
       "Policy",
       "Process",
       "Product",
+      "Project",
       "Regulation",
       "Requirement",
       "Standard",
