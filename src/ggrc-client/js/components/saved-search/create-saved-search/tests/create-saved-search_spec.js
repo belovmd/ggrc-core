@@ -17,20 +17,19 @@ describe('create-saved-search component', () => {
     viewModel = getComponentVM(Component);
   });
 
-  describe('"getFilters" method', () => {
+  describe('getFilters() method', () => {
     let method;
 
     beforeAll(() => {
       method = viewModel.getFilters.bind(viewModel);
     });
 
-    it('should NOT change "parentItems". "parentInstance" is null', () => {
+    it('should NOT change "parentItems" when "parentInstance" is null', () => {
       viewModel.attr('parentItems', [{type: 'parent items'}]);
       viewModel.attr('parentInstance', null);
 
       const result = method();
-      expect(result.parentItems)
-        .toEqual(viewModel.attr('parentItems').serialize());
+      expect(result.parentItems).toEqual([{type: 'parent items'}]);
     });
 
     it('should add item to "parentItems" from "parentInstance"', () => {
@@ -38,11 +37,10 @@ describe('create-saved-search component', () => {
       viewModel.attr('parentInstance', {type: 'parentInstance'});
 
       const result = method();
-      expect(result.parentItems.length).toBe(2);
-      expect(result.parentItems[0])
-        .toEqual(viewModel.attr('parentItems')[0].serialize());
-      expect(result.parentItems[1])
-        .toEqual(viewModel.attr('parentInstance').serialize());
+      expect(result.parentItems).toEqual([
+        {type: 'parent items'},
+        {type: 'parentInstance'},
+      ]);
     });
 
     it('should set "parentItems" from "parentInstance"', () => {
@@ -50,13 +48,61 @@ describe('create-saved-search component', () => {
       viewModel.attr('parentInstance', {type: 'parentInstance'});
 
       const result = method();
-      expect(result.parentItems.length).toBe(1);
-      expect(result.parentItems[0])
-        .toEqual(viewModel.attr('parentInstance').serialize());
+      expect(result.parentItems).toEqual([
+        {type: 'parentInstance'},
+      ]);
+    });
+
+    it('should return object with proper fields', () => {
+      const statusItem = {
+        type: 'state',
+        value: {
+          items: ['Draft', 'Active'],
+          modelName: 'Control',
+          operator: 'ANY',
+        },
+      };
+      const mappingItems = [{
+        type: 'mappingCriteria',
+        value: {
+          filter: {
+            type: 'attribute',
+            value: {
+              field: 'Title',
+              operator: '~',
+              value: 'my-access-group',
+            },
+          },
+        },
+        objectName: 'AccessGroup',
+      }];
+      const filterItems = [{
+        type: 'attribute',
+        value: {
+          field: 'Title',
+          operator: '~',
+          value: 'my-control',
+        },
+      }];
+
+      viewModel.attr('parentInstance', {type: 'parentInstance'});
+      viewModel.attr('mappingItems', mappingItems);
+      viewModel.attr('statusItem', statusItem);
+      viewModel.attr('filterItems', filterItems);
+
+      const result = method();
+      expect(result).toEqual({
+        filterItems,
+        mappingItems,
+        statusItem,
+        parentItems: [{
+          type: 'parentInstance',
+        }],
+      });
     });
   });
 
-  describe('"saveSearch" method', () => {
+  describe('saveSearch() method', () => {
     let method;
 
     beforeAll(() => {

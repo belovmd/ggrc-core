@@ -932,8 +932,8 @@ export const loadSavedSearch = (viewModel) => {
  * @param {Array} parentItems - parentItems attribute of Advanced search
  * @return {Array} - filtered parentItems
  */
-const filterParentItems = (parentInstance, parentItems) => {
-  return parentItems = parentItems.filter((item) =>
+export const filterParentItems = (parentInstance, parentItems) => {
+  return parentItems.filter((item) =>
     item.value.id !== parentInstance.value.id ||
     item.value.type !== parentInstance.value.type);
 };

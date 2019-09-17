@@ -7,6 +7,7 @@ import canMap from 'can-map';
 import * as AdvancedSearch from '../../plugins/utils/advanced-search-utils';
 import * as StateUtils from '../../plugins/utils/state-utils';
 import QueryParser from '../../generated/ggrc_filter_query_parser';
+import loEndsWith from 'lodash/endsWith';
 
 describe('AdvancedSearch', () => {
   describe('buildFilter() method', () => {
@@ -429,6 +430,17 @@ describe('AdvancedSearch', () => {
       const statusConfig = createDummyStatusConfig();
 
       expect(statusConfig.attr('operator')).toBe('ANY');
+    });
+  });
+
+  describe('buildSearchPermalink() function', () => {
+    it('should set correct URL hash', () => {
+      const widgetId = 'regulation';
+      const searchId = '12345';
+      const expectedHash = '#!regulation&saved_search=12345';
+
+      const permaLink = AdvancedSearch.buildSearchPermalink(searchId, widgetId);
+      expect(loEndsWith(permaLink, expectedHash)).toBeTruthy();
     });
   });
 });

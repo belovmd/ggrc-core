@@ -17,7 +17,7 @@ import * as NotifierUtils from '../../../plugins/utils/notifiers-utils';
 import * as MegaObjectUtils from '../../../plugins/utils/mega-object-utils';
 import tracker from '../../../tracker';
 import {getComponentVM} from '../../../../js_specs/spec_helpers';
-import Component, * as TreeWidgetFunctions from '../tree-widget-container';
+import Component, {loadSavedSearch, filterParentItems} from '../tree-widget-container';
 import Relationship from '../../../models/service-models/relationship';
 import exportMessage from '../templates/export-message.stache';
 import QueryParser from '../../../generated/ggrc_filter_query_parser';
@@ -233,7 +233,7 @@ describe('tree-widget-container component', function () {
       expect(vm.attr('advancedSearch.open')).toBe(true);
     });
 
-    it('should add "parentInstance". isObjectContextPage is TRUE' +
+    it('should add "parentInstance" when isObjectContextPage is TRUE' +
     'and "parentInstance" is empty', () => {
       const parentInstance = {id: 1, type: 'Audit'};
       spyOn(CurrentPageUtils, 'isObjectContextPage').and.returnValue(true);
@@ -282,6 +282,7 @@ describe('tree-widget-container component', function () {
         .and.returnValue({type: 'parentInstance', value: parentInstance});
 
       vm.attr('advancedSearch.parentInstance', null);
+
       vm.attr('advancedSearch.appliedParentItems', [
         {value: {id: 1, type: 'Audit'}},
         {value: {id: 2, type: 'Audit'}},
@@ -289,9 +290,17 @@ describe('tree-widget-container component', function () {
       ]);
 
       vm.openAdvancedFilter();
-      expect(vm.attr('advancedSearch.parentItems').length).toBe(2);
+
+      expect(vm.attr('advancedSearch.parentItems').serialize()).toEqual([
+        {value: {id: 2, type: 'Audit'}},
+        {value: {id: 1, type: 'Program'}},
+      ]);
+
       expect(vm.attr('advancedSearch.parentInstance.value').serialize())
-        .toEqual(parentInstance);
+        .toEqual({
+          id: 1,
+          type: 'Audit',
+        });
     });
   });
 
@@ -755,6 +764,51 @@ describe('tree-widget-container component', function () {
     });
   });
 
+  describe('applySavedSearch() method', () => {
+    let method;
+
+    beforeEach(() => {
+      spyOn(vm, 'clearAppliedSavedSearch');
+      vm.attr('filterIsDirty', false);
+      vm.attr('savedSearchPermalink', '');
+
+      method = vm.applySavedSearch.bind(vm);
+    });
+
+    it('should call "clearAppliedSavedSearch" when selectedSavedSearch is null',
+      () => {
+        method(null);
+        expect(vm.clearAppliedSavedSearch).toHaveBeenCalled();
+      }
+    );
+
+    it('should call "clearAppliedSavedSearch" when filter is dirty', () => {
+      vm.attr('filterIsDirty', true);
+
+      method({});
+      expect(vm.clearAppliedSavedSearch).toHaveBeenCalled();
+    });
+
+    it('should set permalink when selectedSavedSearch is not empty ' +
+    'and filter is NOT dirty', () => {
+      spyOn(AdvancedSearch, 'buildSearchPermalink').and.returnValue('link');
+
+      method(new canMap({id: 5}));
+      expect(AdvancedSearch.buildSearchPermalink).toHaveBeenCalled();
+      expect(vm.attr('savedSearchPermalink')).toEqual('link');
+    });
+
+    it('should set appliedSavedSearch when selectedSavedSearch is not empty ' +
+    'and filter is NOT dirty', () => {
+      const selectedSavedSearch = {id: 123};
+      spyOn(AdvancedSearch, 'buildSearchPermalink').and.returnValue('link');
+
+      method(new canMap(selectedSavedSearch));
+      expect(vm.attr('appliedSavedSearch').serialize())
+        .toEqual(selectedSavedSearch);
+    });
+  });
+
   describe('setColumnsConfiguration() method', () => {
     it('should call addServiceColumns() method', () => {
       vm.attr('model', {
@@ -907,7 +961,7 @@ describe('tree-widget-container component', function () {
   });
 });
 
-describe('"loadSavedSearch" function', () => {
+describe('loadSavedSearch() function', () => {
   const viewModel = new canMap({
     router: {
       saved_search: 1,
@@ -922,7 +976,7 @@ describe('"loadSavedSearch" function', () => {
   let treeFunction;
 
   beforeAll(() => {
-    treeFunction = TreeWidgetFunctions.loadSavedSearch;
+    treeFunction = loadSavedSearch;
   });
 
   it('should set "loading" flag to true while loading', (done) => {
@@ -1030,4 +1084,29 @@ describe('"loadSavedSearch" function', () => {
       }});
     }
   );
+});
+
+describe('filterParentItems() method', () => {
+  it('should exclude parentInstance from parentItem', () => {
+    const parentInstance = {
+      value: {
+        id: 5,
+        type: 'Control',
+      },
+    };
+
+    const parentItems = [
+      {value: {id: 7, type: 'Regulation'}},
+      {value: {id: 5, type: 'Regulation'}},
+      {value: {id: 5, type: 'Control'}},
+      {value: {id: 6, type: 'Control'}},
+    ];
+
+    const result = filterParentItems(parentInstance, parentItems);
+    expect(result).toEqual([
+      {value: {id: 7, type: 'Regulation'}},
+      {value: {id: 5, type: 'Regulation'}},
+      {value: {id: 6, type: 'Control'}},
+    ]);
+  });
 });

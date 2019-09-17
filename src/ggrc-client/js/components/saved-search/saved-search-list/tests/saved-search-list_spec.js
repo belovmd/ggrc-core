@@ -3,6 +3,7 @@
  Licensed under http://www.apache.org/licenses/LICENSE-2.0 <see LICENSE file>
 */
 
+import canMap from 'can-map';
 import Component from '../saved-search-list';
 import {
   getComponentVM,
@@ -22,7 +23,7 @@ describe('saved-search-list component', () => {
     viewModel.attr('searchType', 'AdvancedSearch');
   });
 
-  describe('"selectSearch" method', () => {
+  describe('selectSearch() method', () => {
     const parsedFilterJson = {
       filterItems: [{type: 'state'}],
       mappingItems: [],
@@ -37,7 +38,6 @@ describe('saved-search-list component', () => {
         .and.returnValue(parsedFilterJson);
       spyOn(pubSub, 'dispatch');
 
-      viewModel.attr('pubSub', pubSub);
       method = viewModel.selectSearch.bind(viewModel);
     });
 
@@ -78,7 +78,7 @@ describe('saved-search-list component', () => {
     });
   });
 
-  describe('"loadSavedSearches" method', () => {
+  describe('loadSavedSearches() method', () => {
     let method;
 
     beforeAll(() => {
@@ -118,7 +118,7 @@ describe('saved-search-list component', () => {
       });
     });
 
-    it('should NOT set objectType for global search', () => {
+    it('should NOT send objectType for global search', () => {
       const dfd = $.Deferred();
 
       viewModel.attr('searchType', 'GlobalSearch');
@@ -153,22 +153,31 @@ describe('saved-search-list component', () => {
       );
     });
   });
-  describe('"removeSearch" method', () => {
+
+  describe('removeSearch() method', () => {
     let method;
 
-    beforeAll(() => {
-      method = viewModel.removeSearch.bind(viewModel);
-      viewModel.loadSavedSearches = () => {};
-    });
-
-    it('should decrease current page when searches.length == 1', () => {
-      const currentPage = 6;
-      const expectedCurrentPage = 5;
-      const searchInstance = makeFakeInstance({model: SavedSearch})({});
-
+    beforeEach(() => {
       spyOn(viewModel, 'loadSavedSearches');
       spyOn(SavedSearch.prototype, 'destroy')
         .and.returnValue($.Deferred().resolve());
+
+      method = viewModel.removeSearch.bind(viewModel);
+    });
+
+    it('should decrease count of searches', (done) => {
+      const searchInstance = makeFakeInstance({model: SavedSearch})({id: 11});
+
+      method(searchInstance, {stopPropagation: () => {}}).done(() => {
+        expect(searchInstance.destroy).toHaveBeenCalled();
+        done();
+      });
+    });
+
+    it('should decrease current page when searches.length == 1', (done) => {
+      const currentPage = 6;
+      const expectedCurrentPage = 5;
+      const searchInstance = makeFakeInstance({model: SavedSearch})({});
 
       viewModel.attr('searchesPaging', {current: currentPage});
       // Only one search on the page
@@ -178,16 +187,13 @@ describe('saved-search-list component', () => {
         expect(viewModel.attr('searchesPaging.current'))
           .toBe(expectedCurrentPage);
         expect(viewModel.loadSavedSearches).not.toHaveBeenCalled();
+        done();
       });
     });
 
-    it('should NOT decrease current page when searches.length > 1', () => {
+    it('should NOT decrease current page when searches.length > 1', (done) => {
       const currentPage = 6;
       const searchInstance = makeFakeInstance({model: SavedSearch})({});
-
-      spyOn(viewModel, 'loadSavedSearches');
-      spyOn(SavedSearch.prototype, 'destroy')
-        .and.returnValue($.Deferred().resolve());
 
       viewModel.attr('searchesPaging', {current: currentPage});
       // 2 searches on the page
@@ -196,6 +202,53 @@ describe('saved-search-list component', () => {
       method(searchInstance, {stopPropagation: () => {}}).done(() => {
         expect(viewModel.attr('searchesPaging.current')).toBe(currentPage);
         expect(viewModel.loadSavedSearches).toHaveBeenCalled();
+        done();
+      });
+    });
+  });
+
+  describe('permalinkBuilder() helper', () => {
+    let helper;
+    const widgetId = 'regulation';
+    const vm = new canMap({widgetId});
+    const helperOptions = {
+      fn: () => {},
+    };
+    const builtPermalink = 'https://my-website.net';
+
+    beforeAll(() => {
+      spyOn(AdvancedSearchUtils, 'buildSearchPermalink')
+        .and.returnValue(builtPermalink);
+      spyOn(helperOptions, 'fn');
+
+      helper = Component.prototype.helpers.permalinkBuilder
+        .bind(vm);
+    });
+
+    it('should call buildSearchPermalink when savedSearch is object', () => {
+      const savedSearch = {id: 12345};
+      helper(savedSearch, helperOptions);
+
+      expect(AdvancedSearchUtils.buildSearchPermalink)
+        .toHaveBeenCalledWith(savedSearch.id, widgetId);
+
+      expect(helperOptions.fn).toHaveBeenCalledWith({
+        permalink: builtPermalink,
+      });
+    });
+
+    it('should call buildSearchPermalink when savedSearch is function', () => {
+      const savedSearch = () => {
+        return {id: 12345};
+      };
+
+      helper(savedSearch, helperOptions);
+
+      expect(AdvancedSearchUtils.buildSearchPermalink)
+        .toHaveBeenCalledWith(savedSearch().id, widgetId);
+
+      expect(helperOptions.fn).toHaveBeenCalledWith({
+        permalink: builtPermalink,
       });
     });
   });
