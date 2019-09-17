@@ -347,15 +347,24 @@ function getCreateObjectUrl(model) {
 * Get url to instance's attribute
 * @param {Object} instance - The model instance
 * @param {String} attributeName - Name of attribute
+* @param {Boolean} isCustomAttribute - Flag, which defines, is attribute
+* custom or not.
 * @return {String} Url to attribute
 */
-function getProposalAttrUrl(instance, attributeName) {
+function getProposalAttrUrl(
+  instance,
+  attributeName,
+  isCustomAttribute,
+) {
   return getUrl({
     model: instance.constructor.table_singular,
     path: instance.constructor.table_plural,
     slug: instance.slug,
     view: 'info',
-    params: `proposal=${attributeName}`,
+    params: `${isCustomAttribute
+      ? 'proposalAttribute'
+      : 'proposal'
+    }=${attributeName}`,
   });
 }
 

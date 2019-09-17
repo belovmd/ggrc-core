@@ -13,6 +13,7 @@
         <proposable-control
           instance:from="instance"
           attrName:from="redirectionAttrName"
+          isCustomAttribute:from="true"
         >
         </proposable-control>
       </div>

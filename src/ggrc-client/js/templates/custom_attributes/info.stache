@@ -26,6 +26,7 @@
               instance:from="instance"
               editMode:from="editMode"
               redirectionEnabled:from="redirectionEnabled"
+              redirectionAttrName:from="externalName"
               isEditIconDenied:from="isEditIconDenied"
               on:setEditModeInline="setEditModeInline(scope.event)">
                 <div class="info-pane__section-title {{#if mandatory}}form-label form-label__extended{{/if}}">

@@ -134,6 +134,14 @@ export default class CustomAttributeObject {
   }
 
   /**
+   * Returns an external name for the custom attribute.
+   * @return {string} - External name.
+   */
+  get externalName() {
+    return this._caDefinition.attr('external_name');
+  }
+
+  /**
    * Returns the custom attribute id.
    * @return {number} - The custom attribute id.
    */

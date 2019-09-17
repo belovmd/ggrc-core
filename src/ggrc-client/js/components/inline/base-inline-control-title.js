@@ -22,11 +22,6 @@ export default canComponent.extend({
             !this.attr('isEditIconDenied');
         },
       },
-      redirectionAttrName: {
-        get() {
-          return this.attr('title').trim().toLowerCase().replace(/[\s]+/g, '_');
-        },
-      },
     },
     instance: null,
     title: '',
@@ -34,6 +29,7 @@ export default canComponent.extend({
     editMode: false,
     isEditIconDenied: false,
     redirectionEnabled: false,
+    redirectionAttrName: '',
   }),
   events: {
     '.inline-edit-icon click': function () {
