@@ -5,6 +5,7 @@
 import json
 from random import random
 
+import ddt
 from ggrc import db
 from ggrc.app import app
 from ggrc.models.person import Person
@@ -16,6 +17,7 @@ from integration.ggrc.views.saved_searches.initializers import (
 )
 
 
+@ddt.ddt
 class TestSavedSearchPost(SavedSearchBaseTest):
   """Tests for saved search POST view."""
 
@@ -62,6 +64,40 @@ class TestSavedSearchPost(SavedSearchBaseTest):
 
     response = self._client.get(
         "/api/saved_searches/AdvancedSearch?limit=1&object_type=Assessment",
+        headers=self._headers,
+    )
+
+    data = json.loads(response.data)
+
+    self.assertEqual(len(data["values"]), 1)
+    self.assertEqual(data["values"][0]["name"], "test_ss_3")
+
+  @ddt.data(
+      "Workflow",
+      "TaskGroup",
+      "TaskGroupTask",
+      "CycleTaskGroupObjectTask"
+  )
+  def test_0_successful_creation_of_saved_search_non_contributed_models(
+      self, object_type
+  ):
+    """Test that saved search could be created for non contributed models."""
+    response = self._client.post(
+        "/api/saved_searches",
+        data=json.dumps({
+            "name": "test_ss_3",
+            "object_type": object_type,
+            "search_type": "AdvancedSearch"
+        }),
+        headers=self._headers,
+    )
+
+    self.assertEqual(response.status, "200 OK")
+
+    response = self._client.get(
+        "/api/saved_searches/AdvancedSearch?limit=1&object_type={0}".format(
+            object_type
+        ),
         headers=self._headers,
     )
 

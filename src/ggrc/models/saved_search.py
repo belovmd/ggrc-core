@@ -16,13 +16,29 @@ from sqlalchemy.orm import validates
 from sqlalchemy.schema import UniqueConstraint
 
 from ggrc import db
+from ggrc.models import all_models
 from ggrc.models.exceptions import ValidationError
 from ggrc.models.mixins.base import CreationTimeTracked, Dictable, Identifiable
 from ggrc.utils.contributed_objects import CONTRIBUTED_OBJECTS
 
-SUPPORTED_OBJECT_TYPES = tuple(
-    model.__name__ for model in CONTRIBUTED_OBJECTS,
-)
+_EXTENSION_SUPPORTED_OBJECT_TYPES = [
+    all_models.Workflow,
+    all_models.TaskGroup,
+    all_models.TaskGroupTask,
+    all_models.CycleTaskGroupObjectTask,
+]
+
+
+def _get_supported_object_types():
+  """Get list of supported object types"""
+
+  result = list(model.__name__ for model in CONTRIBUTED_OBJECTS)
+  for model in _EXTENSION_SUPPORTED_OBJECT_TYPES:
+    result.append(model.__name__)
+  return result
+
+
+SUPPORTED_OBJECT_TYPES = _get_supported_object_types()
 
 
 class SavedSearch(CreationTimeTracked, Dictable, Identifiable, db.Model):
