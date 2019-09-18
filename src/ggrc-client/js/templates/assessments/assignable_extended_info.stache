@@ -3,65 +3,63 @@
     Licensed under http://www.apache.org/licenses/LICENSE-2.0 <see LICENSE file>
 }}
 
-{{#instance}}
+<div class="row-fluid">
+  <div class="span12">
+    <a class="main-title {{instance.constructor.category}} oneline" href="{{instance.viewLink}}">
+      {{instance.title}}
+    </a>
+  </div>
+</div>
+
+<div class="row-fluid">
+  <div class="span9">
+    <h6>Description</h6>
+    <div class="rtf">
+      {{{firstnonempty instance.description '<span class="empty-message">None</span>'}}}
+    </div>
+  </div>
+  <div class="span3">
+    <h6>Status</h6>
+    <p>
+      {{instance.status}}
+    </p>
+  </div>
+</div>
+<div class="row-fluid">
+  <div class="span9">
+    <h6>People</h6>
+    <lhn-popup-people instance:from="instance"></lhn-popup-people>
+  </div>
+</div>
+<div class="row-fluid">
+  <div class="span3">
+    <h6>Due date</h6>
+    <p>
+      {{#if instance.start_date}}
+        {{localize_date instance.start_date}}
+      {{else}}
+        Not set
+      {{/if}}
+    </p>
+  </div>
+  <div class="span6">
+    <h6>Last deprecated date</h6>
+    <p>
+      {{#if instance.end_date}}
+        {{localize_date instance.end_date}}
+      {{else}}
+        Not set
+      {{/if}}
+    </p>
+  </div>
+</div>
+
+<div class="links">
   <div class="row-fluid">
     <div class="span12">
-      <a class="main-title {{constructor.category}} oneline" href="{{viewLink}}">
-        {{title}}
+      <a class="secondary oneline {{instance.constructor.category}}" href="{{instance.program.viewLink}}#audit/audit/{{instance.id}}">
+        View {{instance.title}}
       </a>
     </div>
   </div>
-
-  <div class="row-fluid">
-    <div class="span9">
-      <h6>Description</h6>
-      <div class="rtf">
-        {{{firstnonempty description '<span class="empty-message">None</span>'}}}
-      </div>
-    </div>
-    <div class="span3">
-      <h6>Status</h6>
-      <p>
-        {{status}}
-      </p>
-    </div>
-  </div>
-  <div class="row-fluid">
-    <div class="span9">
-      <h6>People</h6>
-      <lhn-popup-people instance:from="instance"></lhn-popup-people>
-    </div>
-  </div>
-  <div class="row-fluid">
-    <div class="span3">
-      <h6>Due date</h6>
-      <p>
-        {{#if instance.start_date}}
-          {{localize_date instance.start_date}}
-        {{else}}
-          Not set
-        {{/if}}
-      </p>
-    </div>
-    <div class="span6">
-      <h6>Last deprecated date</h6>
-      <p>
-        {{#if instance.end_date}}
-          {{localize_date instance.end_date}}
-        {{else}}
-          Not set
-        {{/if}}
-      </p>
-    </div>
-  </div>
-
-  <div class="links">
-    <div class="row-fluid">
-      <div class="span12">
-        <a class="secondary oneline {{instance.constructor.category}}" href="{{instance.program.viewLink}}#audit/audit/{{id}}">
-          View {{instance.title}}
-        </a>
-      </div>
-    </div>
-  </div>
-{{/instance}}
+</div>

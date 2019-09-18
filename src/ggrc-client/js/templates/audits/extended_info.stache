@@ -3,94 +3,97 @@
     Licensed under http://www.apache.org/licenses/LICENSE-2.0 <see LICENSE file>
 }}
 
-{{#instance}}
+<div class="row-fluid">
+  <div class="span12">
+    <a class="main-title {{instance.constructor.category}} oneline" href="{{instance.viewLink}}">
+      {{instance.title}}
+    </a>
+  </div>
+</div>
+
+<div class="row-fluid">
+  <div class="span9">
+    <h6>Description</h6>
+    <div class="rtf">
+      {{{firstnonempty instance.description '<span class="empty-message">None</span>'}}}
+    </div>
+  </div>
+  <div class="span3">
+    <h6>State</h6>
+    <p>
+      {{instance.status}}
+    </p>
+  </div>
+</div>
+<div class="row-fluid">
+  <div class="span3">
+    <h6>Planned Start Date</h6>
+    <p>
+      {{#if instance.start_date}}
+        {{localize_date instance.start_date}}
+      {{else}}
+        Not set
+      {{/if}}
+    </p>
+  </div>
+  <div class="span3">
+    <h6>Planned End Date</h6>
+    <p>
+      {{#if instance.end_date}}
+        {{localize_date instance.end_date}}
+      {{else}}
+        Not set
+      {{/if}}
+    </p>
+  </div>
+  <div class="span6">
+    <h6>Report Period</h6>
+    <p>
+      {{#if instance.report_start_date}}
+        {{#if instance.report_end_date}}
+          {{localize_date instance.report_start_date}}-{{localize_date instance.report_end_date}}
+        {{else}}
+          Starts {{localize_date instance.report_start_date}}
+        {{/if}}
+      {{else}}
+        {{#if instance.report_end_date}}
+          Ends {{localize_date instance.report_end_date}}
+        {{else}}
+          Not set
+        {{/if}}
+      {{/if}}
+    </p>
+  </div>
+</div>
+
+<div class="row-fluid">
+  <div class="span6">
+    <h6>Audit firm</h6>
+    <p>
+      <object-loader path:from="instance.audit_firm">
+        {{#if loadedObject}}
+          {{loadedObject.title}}
+        {{else}}
+          None
+        {{/if}}
+      </object-loader>
+    </p>
+  </div>
+</div>
+
+<div class="row-fluid wrap-row">
+  <div>
+    <custom-roles instance:from="instance"
+      orderOfRoles:from="instance.constructor.orderOfRoles"></custom-roles>
+  </div>
+</div>
+
+<div class="links">
   <div class="row-fluid">
-    <div class="span12">
-      <a class="main-title {{instance.constructor.category}} oneline" href="{{viewLink}}">
-        {{instance.title}}
+    <div class="span6">
+      <a class="secondary" href="{{instance.viewLink}}">
+        View {{instance.constructor.title_singular}}
       </a>
     </div>
   </div>
-
-  <div class="row-fluid">
-    <div class="span9">
-      <h6>Description</h6>
-      <div class="rtf">
-        {{{firstnonempty description '<span class="empty-message">None</span>'}}}
-      </div>
-    </div>
-    <div class="span3">
-      <h6>State</h6>
-      <p>
-        {{status}}
-      </p>
-    </div>
-  </div>
-  <div class="row-fluid">
-    <div class="span3">
-      <h6>Planned Start Date</h6>
-      <p>
-        {{#if instance.start_date}}
-          {{localize_date instance.start_date}}
-        {{else}}
-          Not set
-        {{/if}}
-      </p>
-    </div>
-    <div class="span3">
-      <h6>Planned End Date</h6>
-      <p>
-        {{#if instance.end_date}}
-          {{localize_date instance.end_date}}
-        {{else}}
-          Not set
-        {{/if}}
-      </p>
-    </div>
-    <div class="span6">
-      <h6>Report Period</h6>
-      <p>
-        {{#if instance.report_start_date}}
-          {{#if instance.report_end_date}}
-            {{localize_date instance.report_start_date}}-{{localize_date instance.report_end_date}}
-          {{else}}
-            Starts {{localize_date instance.report_start_date}}
-          {{/if}}
-        {{else}}
-          {{#if instance.report_end_date}}
-            Ends {{localize_date instance.report_end_date}}
-          {{else}}
-            Not set
-          {{/if}}
-        {{/if}}
-      </p>
-    </div>
-  </div>
-
-  <div class="row-fluid">
-    <div class="span6">
-      <h6>Audit firm</h6>
-      <p>
-        <object-loader path:from="instance.audit_firm">
-          {{#if loadedObject}}
-            {{loadedObject.title}}
-          {{else}}
-            None
-          {{/if}}
-        </object-loader>
-      </p>
-    </div>
-  </div>
-
-  {{> /static/templates/base_objects/contacts.stache}}
-
-  <div class="links">
-    <div class="row-fluid">
-      <div class="span6">
-        <a class="secondary" href="{{viewLink}}">
-          View {{constructor.title_singular}}
-        </a>
-      </div>
-    </div>
-  </div>
-{{/instance}}
+</div>

@@ -3,32 +3,30 @@
   Licensed under http://www.apache.org/licenses/LICENSE-2.0 <see LICENSE file>
 }}
 
-{{#instance}}
-  <div class="row-fluid">
-    <div class="span12">
-      <object-loader path:from="instance.cycle">
-        <a class="main-title {{constructor.category}} oneline"
-           href="/workflows/{{loadedObject.workflow.id}}">
-        {{title}}
-      </a>
-      </object-loader>
-    </div>
+<div class="row-fluid">
+  <div class="span12">
+    <object-loader path:from="instance.cycle">
+      <a class="main-title {{instance.constructor.category}} oneline"
+         href="/workflows/{{loadedObject.workflow.id}}">
+      {{instance.title}}
+    </a>
+    </object-loader>
   </div>
+</div>
 
-  <div class="row-fluid">
-    <div class="span12">
-      <h6>Description</h6>
-      <div class="rtf">
-        {{{firstnonempty description '<span class="empty-message">None</span>'}}}
-      </div>
+<div class="row-fluid">
+  <div class="span12">
+    <h6>Description</h6>
+    <div class="rtf">
+      {{{firstnonempty instance.description '<span class="empty-message">None</span>'}}}
     </div>
   </div>
+</div>
 
-  <div class="row-fluid">
-    <div class="span12">
-      <div class="code">
-        Code: {{slug}}
-      </div>
+<div class="row-fluid">
+  <div class="span12">
+    <div class="code">
+      Code: {{instance.slug}}
     </div>
   </div>
-{{/instance}}
+</div>
