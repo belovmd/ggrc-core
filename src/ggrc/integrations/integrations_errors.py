@@ -33,3 +33,7 @@ class HttpError(Error):
 
 class BadResponseError(Error):
   """Wrong formatted response error."""
+
+
+class HotlistPermissionError(Error):
+  """Not enough rights to the Hotlist"""

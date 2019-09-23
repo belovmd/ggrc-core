@@ -62,11 +62,6 @@ COMMENT_TMPL = (
 )
 
 
-HOTLIST_PERMISSIONS_ERROR = (
-    "Ticket in issue tracker wasn't added to Hotlist. "
-    "Please make sure that you have enough rights for the "
-    "Hotlist and try again.")
-
 CREATION_ERROR = "Unable to create a ticket in issue tracker."
 
 AVAILABLE_PRIORITIES = ("P0", "P1", "P2", "P3", "P4", )
@@ -197,3 +192,7 @@ class WarningsDescription(object):
   SYNC_ASSESSMENT = "Unable to sync assessment."
   DELETE_ASSESSMENT = "Unable to delete assessment."
   DETACH_ASSESSMENT = "Unable to add detach comment to ticket issue ID=%d"
+  HOTLIST_PERMISSIONS_ERROR = (
+      "Ticket in issue tracker wasn't added to Hotlist. "
+      "Please make sure that you have enough rights for the "
+      "Hotlist and try again.")

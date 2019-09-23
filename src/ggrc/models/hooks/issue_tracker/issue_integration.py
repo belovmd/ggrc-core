@@ -169,17 +169,15 @@ def create_ticket_for_new_issue(obj, issue_tracker_info):
     issue_url = integration_utils.build_issue_tracker_url(res["issueId"])
     issuetracker_issue_params["issue_url"] = issue_url
     issuetracker_issue_params["issue_id"] = res["issueId"]
+  except integrations_errors.HotlistPermissionError:
+    obj.add_warning(constants.WarningsDescription.HOTLIST_PERMISSIONS_ERROR)
+    issuetracker_issue_params["enabled"] = False
   except integrations_errors.Error as error:
     logger.error(
         "Unable to create a ticket while creating object ID=%d: %s",
         obj.id, error
     )
-    if hasattr(error, "status") and error.status == 403 and \
-       "does not have permission to append to hotlist" in str(error.data):
-      message = constants.HOTLIST_PERMISSIONS_ERROR
-    else:
-      message = constants.CREATION_ERROR
-    obj.add_warning(message)
+    obj.add_warning(constants.CREATION_ERROR)
     issuetracker_issue_params["enabled"] = False
 
   # Create object in GGRC with info about issue tracker integration.

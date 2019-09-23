@@ -1512,36 +1512,33 @@ class TestIssueTrackerIntegration(SnapshotterBaseTestCase):
 
     update_issue_mock.assert_not_called()
 
-  @mock.patch("ggrc.integrations.issues.Client.create_issue",
-              side_effect=[integrations_errors.HttpError(
-                data={"error": "com.google.apps.framework.request."
-                               "ForbiddenException: a@test.google.com "
-                               "[FULLY_TRUSTED_DEVICE] does not have "
-                               "permission to append to hotlist 4321"},
-                status=403)])
   @mock.patch.object(settings, "ISSUE_TRACKER_ENABLED", True)
+  @mock.patch("ggrc.integrations.issues.Client.create_issue",
+              side_effect=[integrations_errors.HotlistPermissionError()])
   def test_no_permissions_hotlist(self, _):
     """Test warning message if no permissions to Hotlist."""
     with factories.single_commit():
       audit = factories.AuditFactory()
       factories.IssueTrackerIssueFactory(
-        enabled=True,
-        issue_tracked_obj=audit
+          enabled=True,
+          issue_tracked_obj=audit
       )
 
     issue_data = {"issue_id": None}
     issue_tracker_attrs = self.post_request_payload_builder(issue_data)
 
     response = self.api.post(all_models.Assessment, {
-      "assessment": {
-                "title": "asmt",
-                "audit": {"id": audit.id, "type": audit.type},
-                "issue_tracker": issue_tracker_attrs["issue_tracker"],
-      },
+        "assessment": {
+            "title": "asmt",
+            "audit": {"id": audit.id, "type": audit.type},
+            "issue_tracker": issue_tracker_attrs["issue_tracker"],
+        },
     })
 
-    assert constants.HOTLIST_PERMISSIONS_ERROR in response.json.get(
-      "assessment", {}).get("issue_tracker", {}).get("_warnings", [])
+    self.assertIn(constants.WarningsDescription.HOTLIST_PERMISSIONS_ERROR,
+                  response.json.get(
+                      "assessment", {}).get("issue_tracker",
+                                            {}).get("_warnings", []))
 
 
 @mock.patch('ggrc.models.hooks.issue_tracker.'

@@ -842,12 +842,7 @@ class TestDisabledIssueIntegration(ggrc.TestCase):
     update_issue_mock.assert_not_called()
 
   @mock.patch("ggrc.integrations.issues.Client.create_issue",
-              side_effect=[integrations_errors.HttpError(
-                  data={"error": "com.google.apps.framework.request."
-                                 "ForbiddenException: a@test.google.com "
-                                 "[FULLY_TRUSTED_DEVICE] does not have "
-                                 "permission to append to hotlist 4321"},
-                  status=403)])
+              side_effect=[integrations_errors.HotlistPermissionError()])
   @mock.patch.object(settings, "ISSUE_TRACKER_ENABLED", True)
   def test_no_permissions_hotlist(self, _):
     """Test warning message if no permissions to Hotlist."""
@@ -869,5 +864,7 @@ class TestDisabledIssueIntegration(ggrc.TestCase):
         },
     })
 
-    assert constants.HOTLIST_PERMISSIONS_ERROR in response.json.get(
-        "issue", {}).get("issue_tracker", {}).get("_warnings", [])
+    self.assertIn(constants.WarningsDescription.HOTLIST_PERMISSIONS_ERROR,
+                  response.json.get(
+                      "issue", {}).get("issue_tracker",
+                                       {}).get("_warnings", []))

@@ -110,6 +110,12 @@ class BaseClient(object):
         logging.error(
             'Unable to perform request to %s: %s %s',
             url, response.status_code, response.content)
+        if (403 == response.status_code and
+            "does not have permission to append to hotlist" in
+                response.content):
+          raise integrations_errors.HotlistPermissionError(
+              response
+          )
         raise integrations_errors.HttpError(
             response.content, status=response.status_code)
 
