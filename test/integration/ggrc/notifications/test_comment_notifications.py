@@ -6,6 +6,7 @@
 """Tests for notifications for models with assignable mixin."""
 
 from datetime import datetime
+import collections
 
 import ddt
 from freezegun import freeze_time
@@ -47,6 +48,7 @@ class TestCommentNotification(TestCase):
     def init_decorator(init):
       """Wrapper for Notification init function."""
 
+      # pylint: disable=missing-docstring
       def new_init(self, *args, **kwargs):
         init(self, *args, **kwargs)
         if hasattr(self, "created_at"):
@@ -86,12 +88,10 @@ class TestCommentNotification(TestCase):
     Check if the correct notification entries are created when a comment gets
     posted.
     """
-    factories.AuditFactory(slug="Audit")
-    self.import_file("assessment_template_no_warnings.csv", safe=False)
-    self.import_file("assessment_with_templates.csv")
-    asmt1 = Assessment.query.filter_by(slug="A 1").first()
+    audit = factories.AuditFactory()
+    assessment = factories.AssessmentFactory(audit=audit)
     self.generator.generate_comment(
-        asmt1, "Verifiers", "some comment", send_notification="true")
+        assessment, "Verifiers", "some comment", send_notification="true")
 
     notifications = self._get_notifications(notif_type="comment_created").all()
     self.assertEqual(len(notifications), 1,
@@ -108,32 +108,74 @@ class TestCommentNotification(TestCase):
                      "Found a comment notification that was not sent.")
 
   @patch("ggrc.notifications.common.send_email")
-  def test_grouping_comments(self, _):
+  def test_grouping_comments(self, _):  # pylint: disable=too-many-locals
     """Test that comments are grouped by parent object in daily digest data."""
 
-    factories.AuditFactory(slug="Audit")
-    self.import_file("assessment_template_no_warnings.csv", safe=False)
-    self.import_file("assessment_with_templates.csv")
-    asmt1 = Assessment.query.filter_by(slug="A 1").first()
-    asmt4 = Assessment.query.filter_by(slug="A 4").first()
-    asmt6 = Assessment.query.filter_by(slug="A 6").first()
+    with factories.single_commit():
+      audit = factories.AuditFactory()
+      audit_slug = audit.slug
+      asmt_templ = factories.AssessmentTemplateFactory(audit=audit)
+      asmt_templ_slug = asmt_templ.slug
 
-    asmt_ids = (asmt1.id, asmt4.id, asmt6.id)
+    assessments_data = [
+        collections.OrderedDict([
+            ("object_type", "Assessment"),
+            ("Code*", ""),
+            ("Audit*", audit_slug),
+            ("Assignees*", "user@example.com"),
+            ("Creators", "user@example.com"),
+            ("Template", ""),
+            ("Title", "A1"),
+        ]),
+        collections.OrderedDict([
+            ("object_type", "Assessment"),
+            ("Code*", ""),
+            ("Audit*", audit_slug),
+            ("Assignees*", "user@example.com"),
+            ("Creators", "user@example.com"),
+            ("Template", asmt_templ_slug),
+            ("Title", "A2"),
+        ]),
+        collections.OrderedDict([
+            ("object_type", "Assessment"),
+            ("Code*", ""),
+            ("Audit*", audit_slug),
+            ("Assignees*", "user@example.com"),
+            ("Creators", "user@example.com"),
+            ("Template", asmt_templ_slug),
+            ("Title", "A3"),
+        ]),
+    ]
+
+    self.import_data(*assessments_data)
+
+    asmt_with_no_templ = Assessment.query.filter_by(title="A1").first()
+    asmt_with_templ_1 = Assessment.query.filter_by(title="A2").first()
+    asmt_with_templ_2 = Assessment.query.filter_by(title="A3").first()
+
+    asmt_ids = (asmt_with_no_templ.id,
+                asmt_with_templ_1.id,
+                asmt_with_templ_2.id)
 
     self.generator.generate_comment(
-        asmt1, "Verifiers", "comment X on asmt " + str(asmt1.id),
+        asmt_with_no_templ, "Verifiers",
+        "comment X on asmt " + str(asmt_with_no_templ.id),
         send_notification="true")
     self.generator.generate_comment(
-        asmt6, "Verifiers", "comment A on asmt " + str(asmt6.id),
+        asmt_with_templ_2, "Verifiers",
+        "comment A on asmt " + str(asmt_with_templ_2.id),
         send_notification="true")
     self.generator.generate_comment(
-        asmt4, "Verifiers", "comment FOO on asmt " + str(asmt4.id),
+        asmt_with_templ_1, "Verifiers",
+        "comment FOO on asmt " + str(asmt_with_templ_1.id),
         send_notification="true")
     self.generator.generate_comment(
-        asmt4, "Verifiers", "comment BAR on asmt " + str(asmt4.id),
+        asmt_with_templ_1, "Verifiers",
+        "comment BAR on asmt " + str(asmt_with_templ_1.id),
         send_notification="true")
     self.generator.generate_comment(
-        asmt1, "Verifiers", "comment Y on asmt " + str(asmt1.id),
+        asmt_with_no_templ, "Verifiers",
+        "comment Y on asmt " + str(asmt_with_no_templ.id),
         send_notification="true")
 
     _, notif_data = common.get_daily_notifications()
