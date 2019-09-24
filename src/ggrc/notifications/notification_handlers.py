@@ -108,7 +108,9 @@ def _get_unsent_notification(notif_type, obj, for_update=True):
 
   def _get_notif_key(notif):
     """Return key to use during notification comparison."""
-    return notif.object_id, notif.object_type, notif.notification_type.id
+    return (notif.object_id,
+            notif.object_type,
+            notif.notification_type_id or notif.notification_type.id)
 
   obj_key = (obj.id, obj.type, notif_type.id)
   notifs = (o for o in db.session if isinstance(o, models.Notification))
