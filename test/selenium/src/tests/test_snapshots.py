@@ -730,7 +730,7 @@ class TestSnapshots(base.Test):
       rest_facade.map_objs(
           create_audit_with_control_and_update_control["audit"], obj)
       expected_objs_names_from_mapper = expected_objs_names_from_mapper + (
-          objects.PROGRAMS, objects.PROJECTS, objects.DOCUMENTS)
+          objects.PROGRAMS, objects.DOCUMENTS)
     expected_objs_names_from_add_widget = expected_objs_names_from_mapper
     expected_objs_types_from_mapper = sorted(
         objects.get_normal_form(obj_name)
