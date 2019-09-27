@@ -62,8 +62,6 @@ COMMENT_TMPL = (
 )
 
 
-CREATION_ERROR = "Unable to create a ticket in issue tracker."
-
 AVAILABLE_PRIORITIES = ("P0", "P1", "P2", "P3", "P4", )
 AVAILABLE_SEVERITIES = ("S0", "S1", "S2", "S3", "S4", )
 
@@ -187,6 +185,7 @@ class WarningsDescription(object):
   """Constants for warnings description."""
   # pylint: disable=too-few-public-methods
   CREATE_ASSESSMENT = "Unable to create a ticket."
+  CREATE_ISSUE = "Unable to create a ticket in issue tracker."
   LINK_ASSESSMENT = "Unable to link a ticket."
   UPDATE_ASSESSMENT = "Unable to update a ticket."
   SYNC_ASSESSMENT = "Unable to sync assessment."

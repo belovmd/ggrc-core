@@ -177,7 +177,7 @@ def create_ticket_for_new_issue(obj, issue_tracker_info):
         "Unable to create a ticket while creating object ID=%d: %s",
         obj.id, error
     )
-    obj.add_warning(constants.CREATION_ERROR)
+    obj.add_warning(constants.WarningsDescription.CREATE_ISSUE)
     issuetracker_issue_params["enabled"] = False
 
   # Create object in GGRC with info about issue tracker integration.
