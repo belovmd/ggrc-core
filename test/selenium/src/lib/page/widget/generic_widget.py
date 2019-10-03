@@ -218,9 +218,10 @@ class TreeView(base.TreeView):
     search_field.send_keys(obj_str)
     search_button = self._browser.element(text="Search")
     search_button.click()
-    if len(self.tree_view_items()) > 1:
+    self.wait_loading_after_actions()
+    if len(self.tree_view_items(is_updated=True)) > 1:
       raise ValueError("More than 1 row were found.")
-    return self.tree_view_items()[0]
+    return self.tree_view_items(is_updated=True)[0]
 
   def open_tree_actions_dropdown_by_title(self, title):
     """Open dropdown of obj on Tree View by title. Hover mouse on dropdown

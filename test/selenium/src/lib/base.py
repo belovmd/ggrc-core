@@ -633,9 +633,9 @@ class TreeView(Component):
       self._init_tree_view_headers()
     return self._tree_view_headers
 
-  def tree_view_items(self):
+  def tree_view_items(self, is_updated=False):
     """Return Tree View items as list of TreeViewItem from current widget."""
-    if not self._tree_view_items:
+    if is_updated or not self._tree_view_items:
       self._init_tree_view_items()
     return self._tree_view_items
 
