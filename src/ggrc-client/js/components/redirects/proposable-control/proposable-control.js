@@ -13,17 +13,12 @@ const viewModel = canMap.extend({
   define: {
     link: {
       get() {
-        return getProposalAttrUrl(
-          this.attr('instance'),
-          this.attr('attrName'),
-          this.attr('isCustomAttribute')
-        );
+        return getProposalAttrUrl(this.attr('instance'), this.attr('attrName'));
       },
     },
   },
   instance: null,
   attrName: '',
-  isCustomAttribute: false,
 });
 
 export default canComponent.extend({

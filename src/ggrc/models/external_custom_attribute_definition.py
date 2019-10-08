@@ -28,7 +28,6 @@ class ExternalCustomAttributeDefinition(CustomAttributeDefinitionBase):
 
   id = db.Column(db.Integer, primary_key=True, autoincrement=False)
   external_id = db.Column(db.Integer, nullable=True, unique=True)
-  external_name = db.Column(db.String, nullable=True, unique=True)
   definition_id = None
 
   attribute_values = db.relationship('ExternalCustomAttributeValue',
@@ -54,7 +53,6 @@ class ExternalCustomAttributeDefinition(CustomAttributeDefinitionBase):
   _api_attrs = reflection.ApiAttributes(
       "id",
       "external_id",
-      "external_name",
       reflection.Attribute("default_value",
                            read=True,
                            create=False,
