@@ -9,6 +9,7 @@
 
       <tree-view-filter
         on:vm:onFilter="onFilter"
+        parentInstance:from="parent_instance"
         currentFilter:to="currentFilter"
         additionalFilter:from="options.additional_filter"
         widgetId:from="options.widgetId"

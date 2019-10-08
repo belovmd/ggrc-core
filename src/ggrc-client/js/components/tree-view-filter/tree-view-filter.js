@@ -103,6 +103,7 @@ export default canComponent.extend({
     additionalFilter: null,
     currentFilter: {},
     shouldWaitForFilters: true,
+    parentInstance: null,
     advancedSearch: {
       open: false,
       filter: null,
