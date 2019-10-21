@@ -153,7 +153,8 @@ def bulk_cavs_search():
 
 def _detect_files(data):
   """Checks if we need to attach files"""
-  return any(attr["extra"].get("files") for attr in data if attr["extra"])
+  return any(attr["extra"].get("files")
+             for attr in data["attributes"] if attr["extra"])
 
 
 def _send_notification(update_errors, complete_errors):
@@ -162,7 +163,7 @@ def _send_notification(update_errors, complete_errors):
   del complete_errors
 
 
-@app.route("/bulk_operations/_complete", methods=["POST"])
+@app.route("/_background_tasks/bulk_complete", methods=["POST"])
 @background_task.queued_task
 def bulk_complete(task):
   """Process bulk complete"""
@@ -208,5 +209,5 @@ def run_bulk_complete():
   db.session.commit()
   return bg_task.make_response(
       app.make_response((utils.as_json(bg_task), 200,
-                         [('Content-Type', 'text/html')]))
+                         [('Content-Type', "text/json")]))
   )
