@@ -341,7 +341,7 @@ class TestCsvBuilder(TestCase):
         },
     }
     self.assert_assessments(builder, expected_data)
-    self.assertEqual(builder.assessment_ids, asmt_ids)
+    self.assertEqual(set(builder.assessment_ids), set(asmt_ids))
 
   def test_needs_verification_two_diff_cads(self):
     """Test two cads from two assessments"""

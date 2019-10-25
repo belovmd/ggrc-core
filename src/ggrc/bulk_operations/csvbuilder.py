@@ -67,10 +67,8 @@ class CsvBuilder(object):
 
   @staticmethod
   def _populate_checkbox(raw_value):
-    """Populate checkbox value. We receive 0/1 from FE"""
-    if raw_value:
-      return "yes"
-    return "no"
+    """Populate checkbox value. We receive "0"/"1" from FE"""
+    return "yes" if raw_value == "1" else "no"
 
   @staticmethod
   def _populate_people(raw_value):
