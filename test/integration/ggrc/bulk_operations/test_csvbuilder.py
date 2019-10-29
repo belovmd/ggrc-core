@@ -218,7 +218,7 @@ class TestCsvBuilder(TestCase):
     builder = csvbuilder.CsvBuilder({})
     self._set_assessments_values(builder, cavs)
     # pylint:disable=protected-access
-    builder._collect_keys()
+    builder._collect_required_data()
     self.assertEqual(builder.cav_keys, expected_keys)
     self.assertEqual(builder.assessment_ids, expected_ids)
 

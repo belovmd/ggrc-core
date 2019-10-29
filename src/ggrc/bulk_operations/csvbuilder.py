@@ -32,7 +32,7 @@ class AssessmentStub(object):
 
 
 class CsvBuilder(object):
-  """Handle data and build csv for bulk assessment complete."""
+  """Handle data and build csv for bulk assessment operations."""
   def __init__(self, cav_data):
     """
       Args:
@@ -60,9 +60,8 @@ class CsvBuilder(object):
     }
     self.assessments = collections.defaultdict(AssessmentStub)
     self.cav_keys = []
-    self.assessment_ids = []
+    self.assessment_ids = cav_data.get("assessments_ids", [])
     self.attr_data = cav_data.get("attributes", [])
-    self.assmt_ids = cav_data.get("assessments_ids", [])
     self.convert_data()
 
   @staticmethod
@@ -76,19 +75,18 @@ class CsvBuilder(object):
     person = models.Person.query.filter_by(id=raw_value).first()
     return person.email if person else ""
 
-  def _collect_keys(self):
-    """Collect all CAD titles and assessment ids to create import file"""
+  def _collect_required_data(self):
+    """Collect all CAD titles, verification and slugs"""
     cav_keys_set = set()
     for assessment in self.assessments.values():
       cav_keys_set.update(assessment.cavs.keys())
 
     cav_keys_set = [unicode(cav_key) for cav_key in cav_keys_set]
     self.cav_keys.extend(cav_keys_set)
-    self.assessment_ids = self.assessments.keys()
-    self._collect_verification()
+    self._collect_data_from_db()
 
-  def _collect_verification(self):
-    """Collect if assessments have verification flow"""
+  def _collect_data_from_db(self):
+    """Collect if assessments have verification flow and slugs"""
     if not self.assessment_ids:
       return
 
@@ -104,7 +102,7 @@ class CsvBuilder(object):
 
   def _collect_assmts(self):
     """Collect data for assessments that would be updated."""
-    for assessment_id in self.assmt_ids:
+    for assessment_id in self.assessment_ids:
       self.assessments[assessment_id] = AssessmentStub()
 
   @staticmethod
@@ -117,15 +115,8 @@ class CsvBuilder(object):
     value = self.populate_fields.get(cav_type, self._populate_raw)(raw_value)
     return value
 
-  def convert_data(self):
-    """Convert request data to appropriate format.
-
-      expected output format:
-        self.assessments:
-            {"assessment_id (int)": assessment_stub,}
-    """
-    self._collect_assmts()
-
+  def _collect_attributes(self):
+    """Collect attributes if any presented."""
     for cav in self.attr_data:
       cav_title = cav["attribute_title"]
       cav_type = cav["attribute_type"]
@@ -151,7 +142,17 @@ class CsvBuilder(object):
           comment["cad_id"] = assessment["attribute_definition_id"]
           self.assessments[assessment_id].comments.append(comment)
 
-    self._collect_keys()
+  def convert_data(self):
+    """Convert request data to appropriate format.
+
+      expected output format:
+        self.assessments:
+            {"assessment_id (int)": assessment_stub,}
+    """
+    self._collect_assmts()
+    self._collect_attributes()
+
+    self._collect_required_data()
 
   def _prepare_attributes_row(self, assessment):
     """Prepare row to update assessment attributes
