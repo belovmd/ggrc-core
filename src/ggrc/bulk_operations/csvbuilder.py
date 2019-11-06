@@ -33,6 +33,9 @@ class AssessmentStub(object):
 
 class CsvBuilder(object):
   """Handle data and build csv for bulk assessment operations."""
+
+  READY_TO_VERIFY_STATUS = u"In Review"
+
   def __init__(self, cav_data):
     """
       Args:
@@ -233,6 +236,27 @@ class CsvBuilder(object):
     for assessment in self.assessments.values():
       if assessment.slug not in errors:
         assessments_list.append(self._prepare_assmt_complete_row(assessment))
+
+    result_csv = []
+    if assessments_list:
+      result_csv.append([u"Object type"])
+      result_csv.append([u"Assessment", u"Code", u"State"])
+      result_csv.extend(assessments_list)
+
+    return result_csv
+
+  @staticmethod
+  def _prepare_assmt_verify_row(assessment):
+    """Prepare csv to verify assessments in bulk via import"""
+    row = [u"", assessment.slug, u"Completed"]
+    return row
+
+  def assessments_verify_to_csv(self):
+    """Prepare csv to verify assessments in bulk via import"""
+
+    assessments_list = []
+    for assessment in self.assessments.values():
+      assessments_list.append(self._prepare_assmt_verify_row(assessment))
 
     result_csv = []
     if assessments_list:
