@@ -469,3 +469,17 @@ class TestCsvBuilder(TestCase):
     }
     self.assert_assessments(builder, expected_data)
     self.assertEqual(builder.assessment_ids, [asmt.id])
+
+  def test_bulk_verify_csv(self):
+    """Test building csv for bulk verify"""
+    builder = csvbuilder.CsvBuilder({})
+    builder.assessments[1].slug = "slug-1"
+    builder.assessments[2].slug = "slug-2"
+    builded_list = builder.assessments_verify_to_csv()
+    expected_list = [
+        [u"Object type"],
+        [u"Assessment", u"Code", u"State"],
+        [u"", u"slug-1", u"Completed"],
+        [u"", u"slug-2", u"Completed"],
+    ]
+    self.assertEqual(expected_list, builded_list)

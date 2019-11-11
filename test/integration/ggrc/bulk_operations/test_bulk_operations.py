@@ -9,15 +9,19 @@ import ddt
 
 from ggrc import models
 from integration import ggrc
+from integration.ggrc import generator
 from integration.ggrc.models import factories
 
 
 @ddt.ddt
-class TestBulkComplete(ggrc.TestCase):
+class TestBulkOperations(ggrc.TestCase):
   """Test assessment bulk complete"""
   def setUp(self):
-    super(TestBulkComplete, self).setUp()
+    super(TestBulkOperations, self).setUp()
     self.client.get('/login')
+    self.api = ggrc.Api()
+    self.object_generator = generator.ObjectGenerator()
+    self.init_taskqueue()
 
   def test_successfully_completed(self):
     """Test all assessments completed successfully"""
@@ -31,7 +35,6 @@ class TestBulkComplete(ggrc.TestCase):
         "attributes": [],
     }
 
-    self.init_taskqueue()
     response = self.client.post("/api/bulk_operations/complete",
                                 data=json.dumps(data),
                                 headers=self.headers)
@@ -58,10 +61,63 @@ class TestBulkComplete(ggrc.TestCase):
         "attributes": [],
     }
 
-    self.init_taskqueue()
+
     response = self.client.post("/api/bulk_operations/complete",
                                 data=json.dumps(data),
                                 headers=self.headers)
+
+    self.assert200(response)
+    assessments = models.Assessment.query.all()
+    for assessment in assessments:
+      self.assertEqual(assessment.status, "In Review")
+
+  def test_successfully_verified(self):
+    """Test bulk verify was successful"""
+
+    with factories.single_commit():
+      assmts = []
+      user = models.Person.query.first()
+      for _ in range(2):
+        assmt = factories.AssessmentFactory(status="In Review")
+        assmt.add_person_with_role_name(user, "Verifiers")
+        assmts.append(assmt)
+      asmts_ids = [assessment.id for assessment in assmts]
+
+    data = {
+        "assessments_ids": asmts_ids,
+        "attributes": [],
+    }
+
+    response = self.client.post("/api/bulk_operations/verify",
+                                data=json.dumps(data),
+                                headers=self.headers)
+
+    self.assert200(response)
+    assessments = models.Assessment.query.all()
+    for assessment in assessments:
+      self.assertEqual(assessment.status, "Completed")
+
+  def test_not_verified(self):
+    """Test bulk verify failed"""
+    with factories.single_commit():
+      assmts = []
+      user = models.Person.query.first()
+      for _ in range(2):
+        assmt = factories.AssessmentFactory(status="In Review")
+        assmt.add_person_with_role_name(user, "Verifiers")
+        assmts.append(assmt)
+      asmts_ids = [assessment.id for assessment in assmts]
+
+    _, user = self.object_generator.generate_person(user_role="Creator")
+    self.api.set_user(user)
+
+    data = {
+        "assessments_ids": asmts_ids,
+        "attributes": [],
+    }
+    response = self.api.client.post("/api/bulk_operations/verify",
+                                    data=json.dumps(data),
+                                    headers=self.headers)
 
     self.assert200(response)
     assessments = models.Assessment.query.all()
@@ -85,7 +141,6 @@ class TestBulkComplete(ggrc.TestCase):
         "assessments_ids": [success_id, failed_id],
         "attributes": [],
     }
-    self.init_taskqueue()
 
     response = self.client.post("/api/bulk_operations/complete",
                                 data=json.dumps(data),
@@ -130,7 +185,6 @@ class TestBulkComplete(ggrc.TestCase):
             "bulk_update": bulk_update,
         }],
     }
-    self.init_taskqueue()
     self.client.post("/api/bulk_operations/complete",
                      data=json.dumps(data),
                      headers=self.headers)
@@ -178,7 +232,6 @@ class TestBulkComplete(ggrc.TestCase):
             "bulk_update": bulk_update,
         }],
     }
-    self.init_taskqueue()
     self.client.post("/api/bulk_operations/complete",
                      data=json.dumps(data),
                      headers=self.headers)
@@ -230,7 +283,6 @@ class TestBulkComplete(ggrc.TestCase):
             "bulk_update": bulk_update,
         }],
     }
-    self.init_taskqueue()
 
     response = self.client.post("/api/bulk_operations/complete",
                                 data=json.dumps(data),
@@ -284,7 +336,6 @@ class TestBulkComplete(ggrc.TestCase):
             "bulk_update": bulk_update,
         }],
     }
-    self.init_taskqueue()
     response = self.client.post("/api/bulk_operations/complete",
                                 data=json.dumps(data),
                                 headers=self.headers)
@@ -338,7 +389,6 @@ class TestBulkComplete(ggrc.TestCase):
             "bulk_update": bulk_update,
         }],
     }
-    self.init_taskqueue()
     response = self.client.post("/api/bulk_operations/complete",
                                 data=json.dumps(data),
                                 headers=self.headers)
