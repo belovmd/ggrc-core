@@ -208,9 +208,35 @@ def bulk_complete(task):
                                                bulk_import=True)
     complete_errors = set(complete_assmts["failed_slugs"])
 
-  bulk_notifications.send_notification(upd_errors,
-                                       complete_errors,
-                                       builder.assessment_ids)
+  bulk_notifications.send_notification(update_errors=upd_errors,
+                                       partial_errors=complete_errors,
+                                       asmnt_ids=builder.assessment_ids)
+
+  return app.make_response(('success', 200, [("Content-Type", "text/json")]))
+
+
+@app.route("/_background_tasks/bulk_verify", methods=["POST"])
+@background_task.queued_task
+def bulk_verify(task):
+  """Process bulk complete"""
+
+  with benchmark("Create CsvBuilder"):
+    builder = csvbuilder.CsvBuilder(task.parameters.get("data", {}))
+
+  with benchmark("Prepare import data for verification"):
+    update_data = builder.assessments_verify_to_csv()
+
+  with benchmark("Verify assessments"):
+    verify_assmts = converters.make_import(csv_data=update_data,
+                                           dry_run=False,
+                                           bulk_import=True)
+    _log_import(verify_assmts["data"])
+
+  verify_errors = set(verify_assmts["failed_slugs"])
+
+  bulk_notifications.send_notification(update_errors=verify_errors,
+                                       partial_errors={},
+                                       asmnt_ids=builder.assessment_ids)
 
   return app.make_response(('success', 200, [("Content-Type", "text/json")]))
 
@@ -235,6 +261,26 @@ def run_bulk_complete():
       name="bulk_complete",
       url=flask.url_for(bulk_complete.__name__),
       queued_callback=bulk_complete,
+      parameters=parameters
+  )
+  db.session.commit()
+  return bg_task.make_response(
+      app.make_response((utils.as_json(bg_task), 200,
+                         [('Content-Type', "text/json")]))
+  )
+
+
+@app.route('/api/bulk_operations/verify', methods=['POST'])
+@login_required
+def run_bulk_verify():
+  """Call bulk verify job"""
+  data = flask.request.json
+  parameters = {"data": data}
+
+  bg_task = background_task.create_task(
+      name="bulk_complete",
+      url=flask.url_for(bulk_verify.__name__),
+      queued_callback=bulk_verify,
       parameters=parameters
   )
   db.session.commit()
