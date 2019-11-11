@@ -8,13 +8,13 @@ from integration.ggrc import TestCase
 from integration.ggrc.models import factories
 
 
-class TestBulkOperations(TestCase):
-  """Textra views.ests for bulk operations POST view"""
+class TestBulkOperationsGroup(TestCase):
+  """Test endpoint for cad group functionality"""
 
   ENDPOINT_URL = "/api/bulk_operations/cavs/search"
 
   def setUp(self):
-    super(TestBulkOperations, self).setUp()
+    super(TestBulkOperationsGroup, self).setUp()
     self.client.get("/login")
 
   def test_calc_cad_400(self):
