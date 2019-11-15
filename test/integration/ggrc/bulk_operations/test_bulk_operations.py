@@ -61,7 +61,6 @@ class TestBulkOperations(ggrc.TestCase):
         "attributes": [],
     }
 
-
     response = self.client.post("/api/bulk_operations/complete",
                                 data=json.dumps(data),
                                 headers=self.headers)
@@ -96,6 +95,7 @@ class TestBulkOperations(ggrc.TestCase):
     assessments = models.Assessment.query.all()
     for assessment in assessments:
       self.assertEqual(assessment.status, "Completed")
+      self.assertTrue(assessment.verified)
 
   def test_not_verified(self):
     """Test bulk verify failed"""

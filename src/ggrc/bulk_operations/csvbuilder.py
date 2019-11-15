@@ -5,6 +5,7 @@
 
 import collections
 import copy
+import datetime
 
 from ggrc import models
 
@@ -246,22 +247,25 @@ class CsvBuilder(object):
     return result_csv
 
   @staticmethod
-  def _prepare_assmt_verify_row(assessment):
+  def _prepare_assmt_verify_row(assessment, verify_date):
     """Prepare csv to verify assessments in bulk via import"""
-    row = [u"", assessment.slug, u"Completed"]
+    row = [u"", assessment.slug, u"Completed", verify_date]
     return row
 
   def assessments_verify_to_csv(self):
     """Prepare csv to verify assessments in bulk via import"""
 
+    verify_date = unicode(datetime.datetime.now().strftime("%m/%d/%Y"))
+
     assessments_list = []
     for assessment in self.assessments.values():
-      assessments_list.append(self._prepare_assmt_verify_row(assessment))
+      assessments_list.append(self._prepare_assmt_verify_row(assessment,
+                                                             verify_date))
 
     result_csv = []
     if assessments_list:
       result_csv.append([u"Object type"])
-      result_csv.append([u"Assessment", u"Code", u"State"])
+      result_csv.append([u"Assessment", u"Code", u"State", u"Verified Date"])
       result_csv.extend(assessments_list)
 
     return result_csv
