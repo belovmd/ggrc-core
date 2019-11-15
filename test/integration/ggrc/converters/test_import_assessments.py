@@ -1150,6 +1150,26 @@ class TestAssessmentImport(TestCase):
         all_models.Assessment.query.get(assessment.id).verified_date,
         datetime.datetime(2019, 1, 22))
 
+  def test_asmt_complete_verified(self):
+    """Test assessment moved to Complete and Verified state"""
+    with factories.single_commit():
+      audit = factories.AuditFactory()
+      assessment = factories.AssessmentFactory(audit=audit)
+      slug = assessment.slug
+      user = all_models.Person.query.first()
+      assessment.add_person_with_role_name(user, "Verifiers")
+
+    response = self.import_data(collections.OrderedDict([
+        ("object_type", "Assessment"),
+        ("Code", slug),
+        ("State", "Completed"),
+        ("Verified Date", "01/22/2019"),
+    ]))
+    self._check_csv_response(response, {})
+    assmt = all_models.Assessment.query.one()
+    self.assertTrue(assmt.verified)
+    self.assertEqual(assmt.status, "Completed")
+
   def test_asmt_verified_date_readonly(self):
     """Test that Verified Date is readonly"""
     audit = factories.AuditFactory()
