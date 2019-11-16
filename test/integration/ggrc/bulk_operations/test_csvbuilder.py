@@ -6,6 +6,7 @@
 import copy
 import ddt
 
+import freezegun
 from integration.ggrc import TestCase
 from integration.ggrc.models import factories
 
@@ -428,6 +429,7 @@ class TestCsvBuilder(TestCase):
     self.assert_assessments(builder, expected_data)
     self.assertEqual(builder.assessment_ids, [asmt.id])
 
+  @freezegun.freeze_time("2019-10-21 10:28:34")
   def test_bulk_verify_csv(self):
     """Test building csv for bulk verify"""
     builder = csvbuilder.CsvBuilder({})
@@ -436,8 +438,8 @@ class TestCsvBuilder(TestCase):
     builded_list = builder.assessments_verify_to_csv()
     expected_list = [
         [u"Object type"],
-        [u"Assessment", u"Code", u"State"],
-        [u"", u"slug-1", u"Completed"],
-        [u"", u"slug-2", u"Completed"],
+        [u"Assessment", u"Code", u"State", u"Verified Date"],
+        [u"", u"slug-1", u"Completed", u"10/21/2019"],
+        [u"", u"slug-2", u"Completed", u"10/21/2019"],
     ]
     self.assertEqual(expected_list, builded_list)

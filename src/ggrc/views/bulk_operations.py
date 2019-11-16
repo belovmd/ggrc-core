@@ -278,7 +278,7 @@ def run_bulk_verify():
   parameters = {"data": data}
 
   bg_task = background_task.create_task(
-      name="bulk_complete",
+      name="bulk_verify",
       url=flask.url_for(bulk_verify.__name__),
       queued_callback=bulk_verify,
       parameters=parameters

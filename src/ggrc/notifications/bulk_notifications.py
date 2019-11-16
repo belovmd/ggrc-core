@@ -32,15 +32,15 @@ def send_notification(update_errors, partial_errors, asmnt_ids):
         all_models.Assessment.slug.in_(update_errors)
     ).all()
 
-  partialy_upd_asmnts = []
+  partially_upd_asmnts = []
   if partial_errors:
-    partialy_upd_asmnts = db.session.query(all_models.Assessment).filter(
+    partially_upd_asmnts = db.session.query(all_models.Assessment).filter(
         all_models.Assessment.slug.in_(partial_errors)
     ).all()
 
   not_updated_ids = set(asmnt.id for asmnt in not_updated_asmnts)
-  partialy_upd_ids = set(asmnt.id for asmnt in partialy_upd_asmnts)
-  success_ids = set(asmnt_ids) - not_updated_ids - partialy_upd_ids
+  partially_upd_ids = set(asmnt.id for asmnt in partially_upd_asmnts)
+  success_ids = set(asmnt_ids) - not_updated_ids - partially_upd_ids
 
   success_asmnts = []
   if success_ids:
@@ -50,7 +50,7 @@ def send_notification(update_errors, partial_errors, asmnt_ids):
 
   bulk_data = {
       "update_errors": _create_notif_data(not_updated_asmnts),
-      "partial_errors": _create_notif_data(partialy_upd_asmnts),
+      "partial_errors": _create_notif_data(partially_upd_asmnts),
       "succeeded": _create_notif_data(success_asmnts),
   }
   body = settings.EMAIL_BULK_COMPLETE.render(sync_data=bulk_data)

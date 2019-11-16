@@ -35,8 +35,6 @@ class AssessmentStub(object):
 class CsvBuilder(object):
   """Handle data and build csv for bulk assessment operations."""
 
-  READY_TO_VERIFY_STATUS = u"In Review"
-
   def __init__(self, cav_data):
     """
       Args:
