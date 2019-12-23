@@ -78,7 +78,8 @@ import {notifier, notifierXHR} from '../../../plugins/utils/notifiers-utils';
 import Evidence from '../../../models/business-models/evidence';
 import * as businessModels from '../../../models/business-models';
 import {getAjaxErrorInfo} from '../../../plugins/utils/errors-utils';
-
+import {backendGdriveClient} from '../../../plugins/ggrc-gapi-client';
+import {ggrcAjax} from '../../../plugins/ajax_extensions';
 /**
  * Assessment Specific Info Pane View Component
  */
@@ -365,6 +366,16 @@ export default canComponent.extend({
       } else {
         assessment.attr(path, [related]);
       }
+    },
+    onClick() {
+      backendGdriveClient.withAuth(() => ggrcAjax({
+        type: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        url: '/api/testendpoint',
+        data: '{data: "HELLO MAXIM. I AM GGRC!"}',
+      }));
     },
     addRelatedItem: function (event, type) {
       let self = this;
